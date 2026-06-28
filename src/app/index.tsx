@@ -1,98 +1,124 @@
-import * as Device from 'expo-device';
-import { Platform, StyleSheet } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useAuth } from '@clerk/expo';
+import { Image } from 'expo-image';
+import { Redirect, useRouter } from 'expo-router';
+import { ActivityIndicator, Pressable, Text, View } from 'react-native';
 
-import { AnimatedIcon } from '@/components/animated-icon';
-import { HintRow } from '@/components/hint-row';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { WebBadge } from '@/components/web-badge';
-import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
+import { ScreenBackground } from '@/components/ScreenBackground';
 
-function getDevMenuHint() {
-  if (Platform.OS === 'web') {
-    return <ThemedText type="small">use browser devtools</ThemedText>;
-  }
-  if (Device.isDevice) {
+const logo = require('../../assets/logo/djassafoot.png');
+
+// Grille de logos compétitions / drapeaux (3 rangées, opacité dégradée) — fidèle au design Pencil.
+const ROWS = [
+  {
+    opacity: 0.55,
+    imgs: [
+      require('../../assets/leagues/worldcup.png'),
+      require('../../assets/flags/argentine.png'),
+      require('../../assets/leagues/ucl.png'),
+      require('../../assets/flags/maroc.png'),
+    ],
+  },
+  {
+    opacity: 0.8,
+    imgs: [
+      require('../../assets/leagues/premierleague.png'),
+      require('../../assets/flags/cote-divoire.png'),
+      require('../../assets/leagues/laliga.png'),
+      require('../../assets/flags/bresil.png'),
+    ],
+  },
+  {
+    opacity: 1,
+    imgs: [
+      require('../../assets/leagues/seriea.png'),
+      require('../../assets/flags/france.png'),
+      require('../../assets/leagues/ligue1.png'),
+      require('../../assets/flags/allemagne.png'),
+    ],
+  },
+];
+
+export default function Index() {
+  const { isLoaded, isSignedIn } = useAuth();
+  const router = useRouter();
+
+  if (!isLoaded) {
     return (
-      <ThemedText type="small">
-        shake device or press <ThemedText type="code">m</ThemedText> in terminal
-      </ThemedText>
+      <ScreenBackground variant="hero">
+        <View className="flex-1 items-center justify-center">
+          <Image source={logo} style={{ width: 240, height: 45 }} contentFit="contain" />
+          <ActivityIndicator color="#E5342B" style={{ marginTop: 24 }} />
+        </View>
+      </ScreenBackground>
     );
   }
-  const shortcut = Platform.OS === 'android' ? 'cmd+m (or ctrl+m)' : 'cmd+d';
+
+  if (isSignedIn) return <Redirect href="/home" />;
+
   return (
-    <ThemedText type="small">
-      press <ThemedText type="code">{shortcut}</ThemedText>
-    </ThemedText>
+    <ScreenBackground variant="hero">
+      <View className="flex-1 pt-14">
+        {/* Header — logo aligné à gauche */}
+        <View className="px-6 pb-2 pt-2">
+          <Image
+            source={logo}
+            style={{ width: 132, height: 25 }}
+            contentFit="contain"
+            accessibilityLabel="Djassa Foot"
+          />
+        </View>
+
+        {/* Hero centré */}
+        <View className="flex-1 items-center justify-center px-9">
+          <View className="gap-3.5">
+            {ROWS.map((row, i) => (
+              <View
+                key={i}
+                className="flex-row justify-center gap-3.5"
+                style={{ opacity: row.opacity }}
+              >
+                {row.imgs.map((src, j) => (
+                  <Image
+                    key={j}
+                    source={src}
+                    style={{ width: 48, height: 48, borderRadius: 24 }}
+                    contentFit="cover"
+                  />
+                ))}
+              </View>
+            ))}
+          </View>
+
+          <Text
+            className="mt-8 text-center font-display text-3xl text-white"
+            style={{ lineHeight: 35 }}
+          >
+            Vos pronos, entre amis
+          </Text>
+          <Text
+            className="mt-4 text-center font-ui text-base text-muted"
+            style={{ lineHeight: 22 }}
+          >
+            Pronostique les scores de la Coupe du Monde et grimpe au classement avec tes potes.
+          </Text>
+        </View>
+
+        {/* Footer — CTA blanc + lien connexion */}
+        <View className="gap-1.5 px-6 pb-11">
+          <Pressable
+            onPress={() => router.push('/sign-up')}
+            className="w-full items-center rounded-full bg-white px-6 py-4"
+          >
+            <Text className="font-ui-bold text-[17px] text-ink">Commencer</Text>
+          </Pressable>
+          <Pressable
+            onPress={() => router.push('/sign-in')}
+            className="w-full items-center px-6 py-3.5"
+          >
+            <Text className="font-ui-semibold text-base text-muted">{"J'ai déjà un compte"}</Text>
+          </Pressable>
+        </View>
+      </View>
+    </ScreenBackground>
   );
 }
-
-export default function HomeScreen() {
-  return (
-    <ThemedView style={styles.container}>
-      <SafeAreaView style={styles.safeArea}>
-        <ThemedView style={styles.heroSection}>
-          <AnimatedIcon />
-          <ThemedText type="title" style={styles.title}>
-            Welcome to&nbsp;Expo
-          </ThemedText>
-        </ThemedView>
-
-        <ThemedText type="code" style={styles.code}>
-          get started
-        </ThemedText>
-
-        <ThemedView type="backgroundElement" style={styles.stepContainer}>
-          <HintRow
-            title="Try editing"
-            hint={<ThemedText type="code">src/app/index.tsx</ThemedText>}
-          />
-          <HintRow title="Dev tools" hint={getDevMenuHint()} />
-          <HintRow
-            title="Fresh start"
-            hint={<ThemedText type="code">npm run reset-project</ThemedText>}
-          />
-        </ThemedView>
-
-        {Platform.OS === 'web' && <WebBadge />}
-      </SafeAreaView>
-    </ThemedView>
-  );
-}
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    flexDirection: 'row',
-  },
-  safeArea: {
-    flex: 1,
-    paddingHorizontal: Spacing.four,
-    alignItems: 'center',
-    gap: Spacing.three,
-    paddingBottom: BottomTabInset + Spacing.three,
-    maxWidth: MaxContentWidth,
-  },
-  heroSection: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    flex: 1,
-    paddingHorizontal: Spacing.four,
-    gap: Spacing.four,
-  },
-  title: {
-    textAlign: 'center',
-  },
-  code: {
-    textTransform: 'uppercase',
-  },
-  stepContainer: {
-    gap: Spacing.three,
-    alignSelf: 'stretch',
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.four,
-    borderRadius: Spacing.four,
-  },
-});

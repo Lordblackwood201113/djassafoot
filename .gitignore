@@ -31,7 +31,11 @@ yarn-error.*
 *.pem
 
 # local env files
+.env
 .env*.local
+
+# Convex auto-generated (regénéré par `npx convex dev`)
+convex/_generated/
 
 # typescript
 *.tsbuildinfo
