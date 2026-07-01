@@ -85,9 +85,43 @@ function mapAF(pl: any, isHome: boolean, isSub: boolean) {
     number: num(pl?.number),
     positionShort: clean(pl?.pos),
     grid: clean(pl?.grid), // "ligne:colonne", ex. "2:4" (null pour les remplaçants)
+    apiId: num(pl?.id), // id joueur API-Football → jointure des notes
     isSub,
     isHome,
   };
+}
+
+// Notes des joueurs (post-match) via API-Football, scoped par fixture (passe en gratuit).
+// Renvoie une note par id joueur ET par nom (fallback si l'id manque dans une compo en cache).
+async function fetchApiFootballRatings(
+  fixtureId: string,
+): Promise<{ byId: Map<number, number>; byName: Map<string, number> } | null> {
+  const key = process.env.API_FOOTBALL_KEY;
+  if (!key) return null;
+  try {
+    const res = await fetch(`${AF_BASE}/fixtures/players?fixture=${fixtureId}`, {
+      headers: { 'x-apisports-key': key },
+    });
+    if (!res.ok) return null;
+    const d: any = await res.json();
+    const byId = new Map<number, number>();
+    const byName = new Map<string, number>();
+    for (const team of d.response ?? []) {
+      for (const pp of team.players ?? []) {
+        const raw = pp?.statistics?.[0]?.games?.rating;
+        if (raw == null) continue;
+        const val = Math.round(parseFloat(String(raw)) * 10) / 10;
+        if (!Number.isFinite(val)) continue;
+        const id = num(pp?.player?.id);
+        const nm = clean(pp?.player?.name);
+        if (id != null) byId.set(id, val);
+        if (nm) byName.set(nm.toLowerCase(), val);
+      }
+    }
+    return byId.size || byName.size ? { byId, byName } : null;
+  } catch {
+    return null;
+  }
 }
 
 // L'appel ciblé par fixture passe même sur le plan gratuit (2026), contrairement à la
@@ -187,8 +221,8 @@ export const syncDetails = action({
     let homeFormation: string | undefined = existing?.homeFormation;
     let awayFormation: string | undefined = existing?.awayFormation;
 
+    const idAF = clean(e.idAPIfootball);
     if (!homeFormation) {
-      const idAF = clean(e.idAPIfootball);
       const af = idAF ? await fetchApiFootballLineup(idAF) : null;
       if (af) {
         lineup = af.lineup;
@@ -197,6 +231,21 @@ export const syncDetails = action({
       } else {
         const tsdb = normalizeLineup(lineupJ.lookup ?? []);
         if (tsdb.length) lineup = tsdb;
+      }
+    }
+
+    // Notes joueurs : uniquement une fois le match TERMINÉ (notes finales) et pas déjà en cache.
+    // → 1 seul appel API-Football par match (protège le quota gratuit de 100/jour).
+    const hasRatings = lineup.some((p) => p.rating != null);
+    if (idAF && lineup.length && match.status === 'finished' && !hasRatings) {
+      const rt = await fetchApiFootballRatings(idAF);
+      if (rt) {
+        lineup = lineup.map((p) => {
+          const r =
+            (p.apiId != null ? rt.byId.get(p.apiId) : undefined) ??
+            (p.name ? rt.byName.get(p.name.toLowerCase()) : undefined);
+          return r != null ? { ...p, rating: r } : p;
+        });
       }
     }
 

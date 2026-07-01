@@ -165,6 +165,8 @@ export default defineSchema({
         positionShort: v.optional(v.string()),
         number: v.optional(v.number()),
         grid: v.optional(v.string()),
+        apiId: v.optional(v.number()), // id joueur API-Football (jointure des notes)
+        rating: v.optional(v.number()), // note post-match API-Football (games.rating)
         isSub: v.boolean(),
         isHome: v.boolean(),
       }),

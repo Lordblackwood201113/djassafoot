@@ -11,6 +11,8 @@ export type LineupPlayer = {
   positionShort?: string;
   number?: number;
   grid?: string; // "ligne:colonne" (API-Football) pour le placement terrain
+  apiId?: number; // id joueur API-Football
+  rating?: number; // note post-match (API-Football games.rating)
   isSub: boolean;
   isHome: boolean;
 };

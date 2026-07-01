@@ -41,19 +41,29 @@ function placed(players: LineupPlayer[]) {
   return out;
 }
 
+// Couleur de la pastille de note : vert (bon), blanc (moyen), rouge (faible).
+function ratingBadge(r: number): { bg: string; fg: string } {
+  if (r >= 7) return { bg: '#3FCB86', fg: '#0A1230' };
+  if (r >= 6) return { bg: '#FFFFFF', fg: '#0A1230' };
+  return { bg: '#E5342B', fg: '#FFFFFF' };
+}
+
 function Jersey({
   p,
   x,
   y,
   accent,
   fg,
+  isMotm,
 }: {
   p: LineupPlayer;
   x: number;
   y: number;
   accent: string;
   fg: string;
+  isMotm: boolean;
 }) {
+  const rb = p.rating != null ? ratingBadge(p.rating) : null;
   return (
     <View
       style={{
@@ -66,13 +76,49 @@ function Jersey({
         alignItems: 'center',
       }}
     >
-      <View
-        className="items-center justify-center border-2 border-white"
-        style={{ width: 26, height: 26, borderRadius: 0, backgroundColor: accent }}
-      >
-        <Text className="font-display text-[11px]" style={{ color: fg }}>
-          {p.number ?? ''}
-        </Text>
+      <View style={{ width: 26, height: 26 }}>
+        <View
+          className="h-full w-full items-center justify-center border-2 border-white"
+          style={{ borderRadius: 0, backgroundColor: accent }}
+        >
+          <Text className="font-display text-[11px]" style={{ color: fg }}>
+            {p.number ?? ''}
+          </Text>
+        </View>
+        {rb ? (
+          <View
+            style={{
+              position: 'absolute',
+              top: -7,
+              right: -9,
+              backgroundColor: rb.bg,
+              borderWidth: 1,
+              borderColor: '#0A1230',
+              paddingHorizontal: 2.5,
+              paddingVertical: 0.5,
+            }}
+          >
+            <Text style={{ color: rb.fg, fontSize: 8, fontWeight: '800' }}>{p.rating!.toFixed(1)}</Text>
+          </View>
+        ) : null}
+        {isMotm ? (
+          <View
+            style={{
+              position: 'absolute',
+              top: -8,
+              left: -8,
+              width: 14,
+              height: 14,
+              backgroundColor: '#3FCB86',
+              borderWidth: 1,
+              borderColor: '#0A1230',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <Ionicons name="star" size={8} color="#0A1230" />
+          </View>
+        ) : null}
       </View>
       <View
         style={{ marginTop: 3, maxWidth: 66, backgroundColor: '#0A1230E6', paddingHorizontal: 4, paddingVertical: 1 }}
@@ -114,6 +160,16 @@ export function PitchView({
   const xi = placed(lineup.filter((p) => (isHome ? p.isHome : !p.isHome) && !p.isSub && p.grid));
   const subs = lineup.filter((p) => (isHome ? p.isHome : !p.isHome) && p.isSub);
 
+  // Homme du match = meilleure note du match (toutes équipes confondues).
+  const rated = lineup.filter((p) => typeof p.rating === 'number');
+  const motm = rated.length
+    ? rated.reduce((a, b) => ((b.rating ?? 0) > (a.rating ?? 0) ? b : a))
+    : null;
+  const samePlayer = (a: LineupPlayer, b: LineupPlayer) =>
+    a.apiId != null && b.apiId != null
+      ? a.apiId === b.apiId
+      : a.name === b.name && a.isHome === b.isHome;
+
   return (
     <View className="gap-3">
       {/* Sélecteur d'équipe (bascule) + formation */}
@@ -138,6 +194,23 @@ export function PitchView({
           </View>
         ) : null}
       </View>
+
+      {/* Homme du match (note max) */}
+      {motm && motm.rating != null ? (
+        <View
+          className="flex-row items-center gap-2 border-2 border-white/25 bg-ink px-2.5 py-2"
+          style={{ borderRadius: 0 }}
+        >
+          <Ionicons name="star" size={13} color="#3FCB86" />
+          <Text className="font-mono-bold text-[9px] uppercase text-muted" style={{ letterSpacing: 0.5 }}>
+            Homme du match
+          </Text>
+          <Text numberOfLines={1} className="flex-1 font-mono-bold text-[11px] uppercase text-white">
+            {motm.name}
+          </Text>
+          <Text className="font-display text-[14px] text-green">{motm.rating.toFixed(1)}</Text>
+        </View>
+      ) : null}
 
       {/* Terrain */}
       <View
@@ -183,7 +256,7 @@ export function PitchView({
         <View style={{ position: 'absolute', bottom: 0, left: '50%', width: 50, height: 18, marginLeft: -25, borderWidth: 2, borderColor: 'rgba(255,255,255,0.28)' }} />
 
         {xi.map(({ p, x, y }, i) => (
-          <Jersey key={i} p={p} x={x} y={y} accent={accent} fg={fg} />
+          <Jersey key={i} p={p} x={x} y={y} accent={accent} fg={fg} isMotm={!!motm && samePlayer(p, motm)} />
         ))}
       </View>
 
@@ -206,6 +279,7 @@ export function PitchView({
               >
                 {p.number != null ? `${p.number}  ` : ''}
                 {p.name}
+                {p.rating != null ? `  ·  ${p.rating.toFixed(1)}` : ''}
               </Text>
             ))}
           </View>
