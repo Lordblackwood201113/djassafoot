@@ -6,6 +6,7 @@ import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BracketTree, type Pairing, type TeamSlot } from '@/components/bracket/BracketTree';
 import { GroupStandings } from '@/components/bracket/GroupStandings';
@@ -28,6 +29,7 @@ const ROUND_OPTIONS = [
 ];
 
 export default function Bracket() {
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const standings = useQuery(api.standings.all);
   const matches = useQuery(api.matches.list);
@@ -140,7 +142,7 @@ export default function Bracket() {
 
   return (
     <ScreenBackground variant="app">
-      <View className="flex-1 pt-12">
+      <View className="flex-1" style={{ paddingTop: insets.top + 8 }}>
         <View className="flex-row items-center justify-between px-5 pb-4">
           <Pressable
             onPress={() => (router.canGoBack() ? router.back() : router.replace('/matches'))}

@@ -6,6 +6,7 @@ import { useQuery } from 'convex/react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BrutalBox } from '@/components/brutal/BrutalBox';
 import { BrutalButton } from '@/components/brutal/BrutalButton';
@@ -130,6 +131,7 @@ function Stepper({ value, onChange }: { value: number; onChange: (n: number) => 
 export default function PronoScreen() {
   const { matchId } = useLocalSearchParams<{ matchId: string }>();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const [now] = useState(() => Date.now());
   const id = matchId as Id<'matches'>;
   const match = useQuery(api.matches.byId, matchId ? { id } : 'skip');
@@ -172,7 +174,7 @@ export default function PronoScreen() {
 
   return (
     <ScreenBackground variant="app">
-      <View className="flex-1 pt-12">
+      <View className="flex-1" style={{ paddingTop: insets.top + 8 }}>
         <View className="flex-row items-center gap-3 px-4 pb-3">
           <Pressable
             onPress={() => (router.canGoBack() ? router.back() : router.replace('/matches'))}

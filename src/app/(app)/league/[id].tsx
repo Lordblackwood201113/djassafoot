@@ -6,6 +6,7 @@ import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, ScrollView, Share, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BrutalBox } from '@/components/brutal/BrutalBox';
 import { BrutalButton } from '@/components/brutal/BrutalButton';
@@ -54,6 +55,7 @@ async function shareLeague(name: string, code: string) {
 }
 
 export default function LeagueDetail() {
+  const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const league = useQuery(api.leagues.detail, id ? { leagueId: id as Id<'leagues'> } : 'skip');
@@ -90,7 +92,7 @@ export default function LeagueDetail() {
 
   return (
     <ScreenBackground variant="app">
-      <View className="flex-1 pt-14">
+      <View className="flex-1" style={{ paddingTop: insets.top + 8 }}>
         <View className="px-4 pt-2">
           <Pressable
             onPress={() => (router.canGoBack() ? router.back() : router.replace('/leaderboard'))}

@@ -11,6 +11,8 @@ import {
   View,
 } from 'react-native';
 
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
 import { ScreenBackground } from '@/components/ScreenBackground';
 import { SocialAuth } from '@/components/auth/SocialAuth';
 import { BrutalButton } from '@/components/brutal/BrutalButton';
@@ -26,6 +28,7 @@ const RESEND_SECONDS = 60;
 export default function SignUp() {
   const { isLoaded, signUp, setActive } = useSignUp();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
@@ -99,7 +102,7 @@ export default function SignUp() {
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           className="flex-1"
         >
-          <View className="flex-1 pt-14">
+          <View className="flex-1" style={{ paddingTop: insets.top + 8 }}>
             <View className="px-4 pt-2">
               <Pressable
                 onPress={() => setPending(false)}

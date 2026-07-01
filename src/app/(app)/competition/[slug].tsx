@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Pressable, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BrutalBox } from '@/components/brutal/BrutalBox';
 import { BrutalButton } from '@/components/brutal/BrutalButton';
@@ -12,11 +13,12 @@ import { compBySlug, WORLD_CUP } from '@/lib/competitions';
 export default function CompetitionUnavailable() {
   const { slug } = useLocalSearchParams<{ slug: string }>();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const comp = compBySlug(slug) ?? WORLD_CUP;
 
   return (
     <ScreenBackground variant="app">
-      <View className="flex-1 pt-12">
+      <View className="flex-1" style={{ paddingTop: insets.top + 8 }}>
         <View className="px-5">
           <Pressable
             onPress={() => (router.canGoBack() ? router.back() : router.replace('/matches'))}

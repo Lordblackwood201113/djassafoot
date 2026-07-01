@@ -4,6 +4,7 @@ import { useMutation } from 'convex/react';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, Text, TextInput, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BrutalBox } from '@/components/brutal/BrutalBox';
 import { BrutalButton } from '@/components/brutal/BrutalButton';
@@ -14,6 +15,7 @@ const EMOJIS = ['🏆', '⚽', '🔥', '🦁', '🐘', '🌍', '⭐', '💪', '�
 
 export default function CreateLeague() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const create = useMutation(api.leagues.create);
   const [name, setName] = useState('');
   const [emoji, setEmoji] = useState('🏆');
@@ -40,7 +42,7 @@ export default function CreateLeague() {
   return (
     <ScreenBackground variant="app">
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} className="flex-1">
-        <View className="flex-1 pt-14">
+        <View className="flex-1" style={{ paddingTop: insets.top + 8 }}>
           <View className="flex-row items-center gap-3 px-4 pt-2">
             <Pressable
               onPress={() => (router.canGoBack() ? router.back() : router.replace('/leaderboard'))}

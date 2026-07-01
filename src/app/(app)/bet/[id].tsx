@@ -4,6 +4,7 @@ import type { Id } from '@convex/_generated/dataModel';
 import { useQuery } from 'convex/react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Pressable, ScrollView, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BrutalBox } from '@/components/brutal/BrutalBox';
 import { BrutalButton } from '@/components/brutal/BrutalButton';
@@ -25,6 +26,7 @@ const HERO: Record<
 export default function BetDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const bet = useQuery(api.bets.byId, id ? { id: id as Id<'bets'> } : 'skip') as Bet | null | undefined;
 
   const status = bet?.status ?? 'pending';
@@ -41,7 +43,7 @@ export default function BetDetail() {
 
   return (
     <ScreenBackground variant={status === 'won' ? 'success' : 'app'}>
-      <View className="flex-1 pt-14">
+      <View className="flex-1" style={{ paddingTop: insets.top + 8 }}>
         <View className="px-4 pt-2">
           <Pressable
             onPress={() => (router.canGoBack() ? router.back() : router.replace('/pronos'))}

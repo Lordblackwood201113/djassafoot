@@ -6,6 +6,7 @@ import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Linking, Pressable, ScrollView, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { FlameBalance } from '@/components/FlameBalance';
 import { BrutalBox } from '@/components/brutal/BrutalBox';
@@ -28,6 +29,7 @@ const TWO_HOURS = 2 * 60 * 60 * 1000;
 export default function MatchDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const match = useQuery(api.matches.byId, id ? { id: id as Id<'matches'> } : 'skip');
   const myBets = useQuery(api.bets.forMatch, id ? { matchId: id as Id<'matches'> } : 'skip');
   const details = useQuery(api.matchDetails.getDetails, id ? { matchId: id as Id<'matches'> } : 'skip');
@@ -72,7 +74,7 @@ export default function MatchDetail() {
 
   return (
     <ScreenBackground variant="app">
-      <View className="flex-1 pt-14">
+      <View className="flex-1" style={{ paddingTop: insets.top + 8 }}>
         <View className="flex-row items-center justify-between px-4 pt-2">
           <Pressable
             onPress={() => (router.canGoBack() ? router.back() : router.replace('/matches'))}

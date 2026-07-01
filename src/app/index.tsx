@@ -3,6 +3,7 @@ import { Image } from 'expo-image';
 import { Redirect, useRouter } from 'expo-router';
 import { useEffect, useRef } from 'react';
 import { ActivityIndicator, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BrutalButton } from '@/components/brutal/BrutalButton';
 import { ScreenBackground } from '@/components/ScreenBackground';
@@ -44,6 +45,7 @@ const ROWS = [
 export default function Index() {
   const { isLoaded, isSignedIn } = useAuth();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
 
   const started = useRef(false);
   useEffect(() => {
@@ -68,7 +70,7 @@ export default function Index() {
 
   return (
     <ScreenBackground variant="hero">
-      <View className="flex-1 pt-14">
+      <View className="flex-1" style={{ paddingTop: insets.top + 8 }}>
         {/* Header — logo aligné à gauche */}
         <View className="px-6 pb-2 pt-2">
           <Image

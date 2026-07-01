@@ -23,6 +23,7 @@ import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { AnalyticsBridge } from '@/components/AnalyticsBridge';
 import { initAnalytics } from '@/lib/analytics';
@@ -57,19 +58,21 @@ export default function RootLayout() {
   if (!fontsLoaded) return null;
 
   return (
-    <ClerkProvider
-      publishableKey={process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY!}
-      tokenCache={tokenCache}
-    >
-      <ConvexProviderWithClerk client={convex} useAuth={useAuth}>
-        <AnalyticsBridge />
-        <Stack
-          screenOptions={{
-            headerShown: false,
-            contentStyle: { backgroundColor: '#0A1230' },
-          }}
-        />
-      </ConvexProviderWithClerk>
-    </ClerkProvider>
+    <SafeAreaProvider>
+      <ClerkProvider
+        publishableKey={process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY!}
+        tokenCache={tokenCache}
+      >
+        <ConvexProviderWithClerk client={convex} useAuth={useAuth}>
+          <AnalyticsBridge />
+          <Stack
+            screenOptions={{
+              headerShown: false,
+              contentStyle: { backgroundColor: '#0A1230' },
+            }}
+          />
+        </ConvexProviderWithClerk>
+      </ClerkProvider>
+    </SafeAreaProvider>
   );
 }

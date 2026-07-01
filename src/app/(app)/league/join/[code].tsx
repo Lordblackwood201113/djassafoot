@@ -4,6 +4,7 @@ import { useMutation, useQuery } from 'convex/react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BrutalBox } from '@/components/brutal/BrutalBox';
 import { BrutalButton } from '@/components/brutal/BrutalButton';
@@ -12,6 +13,7 @@ import { hardShadow } from '@/lib/brutal';
 import { clearPendingLeague } from '@/store/pendingLeagueStore';
 
 export default function JoinLeague() {
+  const insets = useSafeAreaInsets();
   const { code } = useLocalSearchParams<{ code: string }>();
   const router = useRouter();
   const norm = (code ?? '').toUpperCase();
@@ -39,7 +41,7 @@ export default function JoinLeague() {
 
   return (
     <ScreenBackground variant="app">
-      <View className="flex-1 pt-14">
+      <View className="flex-1" style={{ paddingTop: insets.top + 8 }}>
         <View className="px-4 pt-2">
           <Pressable
             onPress={() => (router.canGoBack() ? router.back() : router.replace('/leaderboard'))}

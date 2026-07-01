@@ -5,6 +5,7 @@ import { useMutation, useQuery } from 'convex/react';
 import { useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ScreenBackground } from '@/components/ScreenBackground';
 import { BrutalBox } from '@/components/brutal/BrutalBox';
@@ -67,6 +68,7 @@ function NotifRow({ n, isNew }: { n: Doc<'notifications'>; isNew: boolean }) {
 }
 
 export default function Notifications() {
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const notifs = useQuery(api.notifications.list);
   const markAllRead = useMutation(api.notifications.markAllRead);
@@ -85,7 +87,7 @@ export default function Notifications() {
 
   return (
     <ScreenBackground variant="app">
-      <View className="flex-1 pt-12">
+      <View className="flex-1" style={{ paddingTop: insets.top + 8 }}>
         <View className="flex-row items-center gap-3 px-5 pb-3">
           <Pressable
             onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))}

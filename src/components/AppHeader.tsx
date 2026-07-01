@@ -3,15 +3,20 @@ import { api } from '@convex/_generated/api';
 import { useQuery } from 'convex/react';
 import { useRouter } from 'expo-router';
 import { Pressable, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 // Header de marque BRUTALISTE, persistant : wordmark DJASSA·FOOT + chip jetons + cloche.
 export function AppHeader() {
   const router = useRouter();
   const me = useQuery(api.users.current);
   const unread = useQuery(api.notifications.unreadCount) ?? 0;
+  const insets = useSafeAreaInsets();
 
   return (
-    <View className="flex-row items-center justify-between px-[18px] pb-2 pt-[44px]">
+    <View
+      className="flex-row items-center justify-between px-[18px] pb-2"
+      style={{ paddingTop: insets.top + 8 }}
+    >
       <View className="flex-row items-center">
         <Text className="font-display text-[18px] text-white">DJASSA</Text>
         <Text className="font-display text-[18px] text-red">FOOT</Text>

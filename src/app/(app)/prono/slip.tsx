@@ -5,6 +5,7 @@ import { useMutation, useQuery } from 'convex/react';
 import { useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { FlameBalance } from '@/components/FlameBalance';
 import { ScreenBackground } from '@/components/ScreenBackground';
@@ -23,6 +24,7 @@ const MARKET_LABEL: Record<string, string> = {
 };
 
 export default function BetSlip() {
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const { matchId, legs, stake, setStake, removeLeg } = usePronoDraft();
   const match = useQuery(api.matches.byId, matchId ? { id: matchId as Id<'matches'> } : 'skip');
@@ -71,7 +73,7 @@ export default function BetSlip() {
 
   return (
     <ScreenBackground variant="app">
-      <View className="flex-1 pt-12">
+      <View className="flex-1" style={{ paddingTop: insets.top + 8 }}>
         <View className="flex-row items-center justify-between px-4 pb-2">
           <Pressable
             onPress={() => (router.canGoBack() ? router.back() : router.replace('/matches'))}
