@@ -2,6 +2,21 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Polices servies depuis public/fonts (hors node_modules, que Cloudflare Pages exclut du
+   déploiement). Indispensable sur le web statique : sinon icônes en carrés + texte en police
+   système. `block` pour les icônes (évite le flash de carrés), `swap` pour le texte. */
+@font-face { font-family: 'Sora_600SemiBold'; src: url('/fonts/Sora_600SemiBold.ttf') format('truetype'); font-display: swap; }
+@font-face { font-family: 'Sora_700Bold'; src: url('/fonts/Sora_700Bold.ttf') format('truetype'); font-display: swap; }
+@font-face { font-family: 'Sora_800ExtraBold'; src: url('/fonts/Sora_800ExtraBold.ttf') format('truetype'); font-display: swap; }
+@font-face { font-family: 'Inter_400Regular'; src: url('/fonts/Inter_400Regular.ttf') format('truetype'); font-display: swap; }
+@font-face { font-family: 'Inter_500Medium'; src: url('/fonts/Inter_500Medium.ttf') format('truetype'); font-display: swap; }
+@font-face { font-family: 'Inter_600SemiBold'; src: url('/fonts/Inter_600SemiBold.ttf') format('truetype'); font-display: swap; }
+@font-face { font-family: 'Inter_700Bold'; src: url('/fonts/Inter_700Bold.ttf') format('truetype'); font-display: swap; }
+@font-face { font-family: 'SpaceMono_400Regular'; src: url('/fonts/SpaceMono_400Regular.ttf') format('truetype'); font-display: swap; }
+@font-face { font-family: 'SpaceMono_700Bold'; src: url('/fonts/SpaceMono_700Bold.ttf') format('truetype'); font-display: swap; }
+@font-face { font-family: 'Ionicons'; src: url('/fonts/Ionicons.ttf') format('truetype'); font-display: block; }
+@font-face { font-family: 'MaterialCommunityIcons'; src: url('/fonts/MaterialCommunityIcons.ttf') format('truetype'); font-display: block; }
+
 :root {
   --font-display: 'Sora', 'Inter', ui-sans-serif, system-ui, sans-serif;
   --font-body: 'Inter', ui-sans-serif, system-ui, sans-serif;
