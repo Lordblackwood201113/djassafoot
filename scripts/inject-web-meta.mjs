@@ -4,7 +4,7 @@ import { readFileSync, writeFileSync } from 'node:fs';
 
 const FILE = 'dist/index.html';
 const MARKER = '<!-- djassafoot-meta -->';
-const IMG = 'https://djassafoot.pages.dev/og-image.png';
+const IMG = 'https://djassafoot.pages.dev/og-image.jpg';
 const SITE = 'https://djassafoot.pages.dev/';
 const DESC = 'Pronostique la Coupe du Monde 2026 et défie tes amis dans des ligues privées. 🪙';
 
@@ -26,6 +26,10 @@ const tags = `${MARKER}
 <meta property="og:title" content="Djassa Foot — Pronos entre amis">
 <meta property="og:description" content="${DESC}">
 <meta property="og:image" content="${IMG}">
+<meta property="og:image:secure_url" content="${IMG}">
+<meta property="og:image:type" content="image/jpeg">
+<meta property="og:image:width" content="630">
+<meta property="og:image:height" content="630">
 <meta property="og:url" content="${SITE}">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Djassa Foot — Pronos entre amis">
