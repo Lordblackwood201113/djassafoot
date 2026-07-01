@@ -163,7 +163,7 @@ export default function BetSlip() {
                 placeholder="0"
                 placeholderTextColor="#6B77A8"
                 className="flex-1 border-2 border-white bg-ink px-3 py-2 font-display text-3xl text-white"
-                style={{ borderRadius: 0 }}
+                style={{ borderRadius: 0, minWidth: 0 }}
               />
               <Pressable
                 onPress={() => setStake(balance)}
