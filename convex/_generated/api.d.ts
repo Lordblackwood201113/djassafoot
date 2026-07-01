@@ -22,7 +22,6 @@ import type * as migrations from "../migrations.js";
 import type * as notifications from "../notifications.js";
 import type * as oddsShared from "../oddsShared.js";
 import type * as oddsSync from "../oddsSync.js";
-import type * as rounds from "../rounds.js";
 import type * as settlement from "../settlement.js";
 import type * as standings from "../standings.js";
 import type * as users from "../users.js";
@@ -48,7 +47,6 @@ declare const fullApi: ApiFromModules<{
   notifications: typeof notifications;
   oddsShared: typeof oddsShared;
   oddsSync: typeof oddsSync;
-  rounds: typeof rounds;
   settlement: typeof settlement;
   standings: typeof standings;
   users: typeof users;

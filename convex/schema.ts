@@ -75,13 +75,8 @@ export default defineSchema({
       v.literal('live'),
       v.literal('finished'),
     ),
-    homeScore: v.optional(v.number()), // score FINAL affiché (prolongation incluse en phase finale)
+    homeScore: v.optional(v.number()),
     awayScore: v.optional(v.number()),
-    // Score au TEMPS RÉGLEMENTAIRE (90', source API-Football `score.fulltime`). Base de règlement
-    // des paris (règle bookmaker). Rempli seulement pour les matchs à élimination allés au-delà
-    // des 90' ; ailleurs le score final = score 90'.
-    regHomeScore: v.optional(v.number()),
-    regAwayScore: v.optional(v.number()),
     // Tirs au but (phase finale) — source API-Football, remplis seulement si séance de tirs.
     homePenalty: v.optional(v.number()),
     awayPenalty: v.optional(v.number()),
