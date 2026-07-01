@@ -8,19 +8,17 @@ import { useState } from 'react';
 import { Platform, Pressable, ScrollView, Share, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { BrutalBox } from '@/components/brutal/BrutalBox';
 import { BrutalButton } from '@/components/brutal/BrutalButton';
 import { fmtScore, scoreColor } from '@/components/leagues/LeaguesTab';
 import { ScreenBackground } from '@/components/ScreenBackground';
 import { hardShadow } from '@/lib/brutal';
 
+const MUT2 = '#6B77A8';
+
 function initials(name?: string) {
   if (!name) return '?';
   const p = name.trim().split(/\s+/).filter(Boolean);
   return (p.length >= 2 ? p[0][0] + p[1][0] : name.trim().slice(0, 2)).toUpperCase();
-}
-function rankColor(i: number) {
-  return i === 0 ? '#FFD24A' : i === 1 ? '#C0C0C0' : i === 2 ? '#CD7F32' : '#9AA4CC';
 }
 
 function joinLink(code: string) {
@@ -79,6 +77,22 @@ export default function LeagueDetail() {
     setShareMsg('Copie le lien ci-dessous 👇');
   };
 
+  // Bouton « copier » du code : copie le lien d'invitation, sinon retombe sur le partage.
+  const onCopy = async () => {
+    if (!league) return;
+    const nav: any = typeof navigator !== 'undefined' ? navigator : undefined;
+    try {
+      if (nav?.clipboard?.writeText) {
+        await nav.clipboard.writeText(joinLink(league.code));
+        setShareMsg('Lien copié ✅');
+        return;
+      }
+    } catch {
+      /* indispo */
+    }
+    onShare();
+  };
+
   const onLeave = async () => {
     if (!id) return;
     setBusy(true);
@@ -107,14 +121,29 @@ export default function LeagueDetail() {
   return (
     <ScreenBackground variant="app">
       <View className="flex-1" style={{ paddingTop: insets.top + 8 }}>
-        <View className="px-4 pt-2">
+        {/* En-tête : retour · titre centré · partager */}
+        <View className="flex-row items-center justify-between px-4 pb-1 pt-1">
           <Pressable
             onPress={() => (router.canGoBack() ? router.back() : router.replace('/leaderboard'))}
             className="h-11 w-11 items-center justify-center border-2 border-white bg-ink"
-            style={[{ borderRadius: 0 }, hardShadow('#E5342B', 4)]}
+            style={[{ borderRadius: 0 }, hardShadow('#E5342B', 3)]}
           >
             <Ionicons name="chevron-back" size={24} color="#ffffff" />
           </Pressable>
+          <Text className="font-display text-xl uppercase text-white" style={{ letterSpacing: 0.5 }}>
+            Ma ligue
+          </Text>
+          {league ? (
+            <Pressable
+              onPress={onShare}
+              className="h-11 w-11 items-center justify-center border-2 border-white bg-ink"
+              style={[{ borderRadius: 0 }, hardShadow('#E5342B', 3)]}
+            >
+              <Ionicons name="share-social" size={20} color="#ffffff" />
+            </Pressable>
+          ) : (
+            <View className="h-11 w-11" />
+          )}
         </View>
 
         {league === undefined ? (
@@ -125,115 +154,134 @@ export default function LeagueDetail() {
           </View>
         ) : (
           <ScrollView
-            contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 12, paddingBottom: 40, gap: 16 }}
+            contentContainerStyle={{ paddingHorizontal: 18, paddingTop: 10, paddingBottom: 40, gap: 14 }}
             showsVerticalScrollIndicator={false}
           >
-            {/* En-tête centré : logo + nom (une seule fois) */}
-            <View className="items-center gap-3 pt-1">
-              <BrutalBox
-                shadow="#E5342B"
-                offset={6}
-                borderWidth={2.5}
-                className="h-20 w-20 items-center justify-center bg-surface-3"
+            {/* Carte identité : blason + nom + code + copie */}
+            <View
+              className="items-center gap-3 border-2 border-white bg-surface-3 px-4 pb-5 pt-6"
+              style={[{ borderRadius: 0 }, hardShadow('#3FCB86', 6)]}
+            >
+              <View
+                className="h-16 w-16 items-center justify-center border-2 border-white bg-red"
+                style={[{ borderRadius: 0 }, hardShadow('#0A1230', 3)]}
               >
-                <Text className="text-[40px]">{league.emoji || '🏆'}</Text>
-              </BrutalBox>
-              <View className="items-center gap-1">
-                <Text numberOfLines={2} className="text-center font-display text-2xl uppercase text-white">
-                  {league.name}
-                </Text>
-                <Text className="font-mono text-[10px] uppercase text-muted">
-                  {league.memberCount} membre{league.memberCount > 1 ? 's' : ''}
-                  {league.isOwner ? ' · tu es admin' : ''}
-                </Text>
+                {league.emoji ? (
+                  <Text className="text-[34px]">{league.emoji}</Text>
+                ) : (
+                  <Ionicons name="trophy" size={30} color="#ffffff" />
+                )}
               </View>
-            </View>
-
-            {/* Invitation */}
-            <BrutalBox shadow="#3FCB86" offset={5} borderWidth={2} className="gap-3 bg-surface-3 p-4">
-              <Text className="font-mono-bold text-[11px] uppercase text-muted" style={{ letterSpacing: 1 }}>
-                Code d'invitation
+              <Text numberOfLines={2} className="text-center font-display text-2xl uppercase text-white">
+                {league.name}
               </Text>
-              <View className="flex-row items-center justify-between">
-                <Text className="font-display text-3xl uppercase text-white" style={{ letterSpacing: 4 }}>
-                  {league.code}
-                </Text>
-                <View className="h-2.5 w-2.5 bg-green" />
+              <Text className="font-mono-bold text-[10px] uppercase text-muted" style={{ letterSpacing: 1 }}>
+                {league.memberCount} membre{league.memberCount > 1 ? 's' : ''}
+                {league.isOwner ? ' · admin' : ''}
+              </Text>
+
+              {/* Code d'invitation + copie */}
+              <View
+                className="w-full flex-row items-center justify-between border-2 border-white bg-ink px-3 py-2.5"
+                style={{ borderRadius: 0 }}
+              >
+                <View className="flex-row items-center gap-2.5">
+                  <Text className="font-mono-bold text-[10px] uppercase" style={{ color: MUT2, letterSpacing: 1 }}>
+                    Code
+                  </Text>
+                  <Text className="font-display text-base uppercase text-white" style={{ letterSpacing: 2 }}>
+                    {league.code}
+                  </Text>
+                </View>
+                <Pressable
+                  onPress={onCopy}
+                  className="h-8 w-8 items-center justify-center border-2 border-white bg-red"
+                  style={{ borderRadius: 0 }}
+                >
+                  <Ionicons name="copy-outline" size={15} color="#ffffff" />
+                </Pressable>
               </View>
 
               {/* Lien complet, sélectionnable → copie manuelle fiable partout (même hors HTTPS) */}
-              <View className="border-2 border-white/30 bg-ink px-3 py-2" style={{ borderRadius: 0 }}>
+              <View className="w-full border-2 border-white/30 bg-ink px-3 py-2" style={{ borderRadius: 0 }}>
                 <Text selectable numberOfLines={1} className="font-mono text-[11px] text-white/80">
                   {joinLink(league.code)}
                 </Text>
               </View>
-
-              <BrutalButton label="Partager le lien" variant="green" onPress={onShare} />
               {shareMsg ? (
-                <Text className="text-center font-mono-bold text-[11px] uppercase text-green">
-                  {shareMsg}
-                </Text>
+                <Text className="text-center font-mono-bold text-[11px] uppercase text-green">{shareMsg}</Text>
               ) : null}
-            </BrutalBox>
+            </View>
 
             {/* Classement */}
             <View className="flex-row items-center gap-2 pt-1">
               <View className="h-2.5 w-2.5 bg-red" />
-              <Text className="font-display text-base uppercase text-white">Classement</Text>
-              <Text className="font-mono text-[9px] uppercase text-muted">· jetons depuis l'entrée</Text>
+              <Text className="flex-1 font-display text-base uppercase text-white" style={{ letterSpacing: 0.5 }}>
+                Classement
+              </Text>
+              <Text className="font-mono text-[10px] uppercase text-muted">{league.memberCount}</Text>
             </View>
 
-            {league.members.map((m, idx) => {
-              const col = m.isMe ? '#E5342B' : rankColor(idx);
-              return (
-                <View
-                  key={m.userId}
-                  className="flex-row items-center gap-3 border-2 bg-surface-3 px-3.5 py-3"
-                  style={{ borderRadius: 0, borderColor: m.isMe ? '#E5342B' : '#FFFFFF' }}
-                >
-                  <Text
-                    className="font-display text-[18px]"
-                    style={{ color: col, width: 22, textAlign: 'center' }}
-                  >
-                    {idx + 1}
-                  </Text>
+            <View className="border-2 border-white bg-surface-3 px-3.5" style={{ borderRadius: 0 }}>
+              {league.members.map((m, idx) => (
+                <View key={m.userId}>
+                  {idx > 0 ? <View style={{ height: 1.5, backgroundColor: '#FFFFFF1F' }} /> : null}
                   <View
-                    className="h-9 w-9 items-center justify-center overflow-hidden border-2 bg-surface-2"
-                    style={{ borderRadius: 0, borderColor: col }}
+                    className="flex-row items-center gap-2.5 py-3"
+                    style={{
+                      borderLeftWidth: 3,
+                      borderLeftColor: m.isMe ? '#E5342B' : 'transparent',
+                      backgroundColor: m.isMe ? '#1B2452' : 'transparent',
+                      paddingLeft: 6,
+                    }}
                   >
-                    {m.avatarUrl ? (
-                      <Image source={{ uri: m.avatarUrl }} style={{ width: 36, height: 36 }} />
-                    ) : (
-                      <Text className="font-display text-[12px] text-white">{initials(m.username)}</Text>
-                    )}
-                  </View>
-                  <View className="flex-1">
-                    <Text numberOfLines={1} className="font-mono-bold text-[13px] uppercase text-white">
-                      {m.username.toUpperCase()}
-                      {m.isMe ? ' · TOI' : ''}
-                    </Text>
-                    <Text className="font-mono text-[9px] uppercase text-muted">
-                      {m.isOwner ? '👑 admin' : 'membre'}
-                    </Text>
-                  </View>
-                  <Text className="font-display text-[15px]" style={{ color: scoreColor(m.score) }}>
-                    {fmtScore(m.score)}
-                  </Text>
-                  {league.isOwner && !m.isMe ? (
-                    <Pressable
-                      onPress={() => kick({ leagueId: league._id, userId: m.userId })}
-                      className="h-7 w-7 items-center justify-center border-2 border-white bg-ink"
-                      style={{ borderRadius: 0 }}
+                    <Text
+                      className="font-display text-[15px]"
+                      style={{ color: m.isMe ? '#FFFFFF' : MUT2, width: 20, textAlign: 'center' }}
                     >
-                      <Ionicons name="close" size={14} color="#E5342B" />
-                    </Pressable>
-                  ) : null}
+                      {idx + 1}
+                    </Text>
+                    <View
+                      className="h-8 w-8 items-center justify-center overflow-hidden border-2 border-white"
+                      style={{ borderRadius: 0, backgroundColor: m.isMe ? '#E5342B' : '#23306A' }}
+                    >
+                      {m.avatarUrl ? (
+                        <Image source={{ uri: m.avatarUrl }} style={{ width: 32, height: 32 }} />
+                      ) : (
+                        <Text className="font-mono-bold text-[11px] text-white">{initials(m.username)}</Text>
+                      )}
+                    </View>
+                    <Text numberOfLines={1} className="flex-1 font-mono-bold text-[12px] uppercase text-white">
+                      {m.isMe ? 'Toi' : m.username}
+                      {m.isOwner ? ' 👑' : ''}
+                    </Text>
+                    <Text className="font-display text-[14px]" style={{ color: scoreColor(m.score) }}>
+                      {fmtScore(m.score)}
+                    </Text>
+                    {league.isOwner && !m.isMe ? (
+                      <Pressable
+                        onPress={() => kick({ leagueId: league._id, userId: m.userId })}
+                        className="h-7 w-7 items-center justify-center border-2 border-white bg-ink"
+                        style={{ borderRadius: 0 }}
+                      >
+                        <Ionicons name="close" size={14} color="#E5342B" />
+                      </Pressable>
+                    ) : null}
+                  </View>
                 </View>
-              );
-            })}
+              ))}
+            </View>
+
+            <Text
+              className="px-2 pt-1 text-center font-mono-bold text-[9px] uppercase"
+              style={{ color: MUT2, letterSpacing: 0.5, lineHeight: 14 }}
+            >
+              Gains comptés sur tes paris réglés depuis ton entrée
+            </Text>
 
             {/* Actions */}
-            <View className="mt-2 gap-2.5">
+            <View className="mt-1 gap-2.5">
+              <BrutalButton label="Partager le lien" variant="green" onPress={onShare} />
               {league.isOwner ? (
                 <BrutalButton
                   label={confirmDelete ? 'Confirmer la suppression' : 'Supprimer la ligue'}
