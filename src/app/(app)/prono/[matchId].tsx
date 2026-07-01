@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { api } from '@convex/_generated/api';
 import type { Id } from '@convex/_generated/dataModel';
+import { isPickCompatible } from '@convex/betRules';
 import { exactOdds } from '@convex/oddsShared';
 import { useQuery } from 'convex/react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -21,27 +22,31 @@ function OddButton({
   label,
   odd,
   selected,
+  disabled,
   onPress,
 }: {
   label: string;
   odd: number;
   selected: boolean;
+  disabled?: boolean;
   onPress: () => void;
 }) {
   return (
     <Pressable
-      onPress={onPress}
+      onPress={disabled ? undefined : onPress}
+      disabled={disabled}
       style={[
         {
           flex: 1,
           alignItems: 'center',
           borderRadius: 0,
           borderWidth: 2,
-          borderColor: '#FFFFFF',
+          borderColor: disabled ? '#3A4468' : '#FFFFFF',
           paddingVertical: 12,
           backgroundColor: selected ? '#E5342B' : '#131C3F',
+          opacity: disabled ? 0.4 : 1,
         },
-        selected ? hardShadow('#0A1230', 4) : hardShadow('#E5342B', 4),
+        disabled ? null : selected ? hardShadow('#0A1230', 4) : hardShadow('#E5342B', 4),
       ]}
     >
       <Text
@@ -150,6 +155,15 @@ export default function PronoScreen() {
     [odds, hg, ag],
   );
   const exactOn = !!legs['exact_score'];
+
+  // Anti-paris-illégaux : une option est désactivée si l'ajouter rendrait la combinaison
+  // impossible (R2) ou incompatible avec le score exact / R1. Une option déjà sélectionnée
+  // reste toujours désélectionnable.
+  const currentLegs = Object.values(legs).map((l) => ({ market: l.market, pick: l.pick }));
+  const disabledFor = (market: Market, pick: string) =>
+    legs[market]?.pick === pick ? false : !isPickCompatible(currentLegs, { market, pick });
+  const exactDisabled =
+    !exactOn && !isPickCompatible(currentLegs, { market: 'exact_score', pick: `${hg}-${ag}` });
 
   const updateExact = (nh: number, na: number) => {
     setHg(nh);
@@ -266,18 +280,21 @@ export default function PronoScreen() {
                     label={home}
                     odd={odds.home}
                     selected={legs['result_1x2']?.pick === 'home'}
+                    disabled={disabledFor('result_1x2', 'home')}
                     onPress={() => pickResult('home', home, odds.home)}
                   />
                   <OddButton
                     label="Nul"
                     odd={odds.draw}
                     selected={legs['result_1x2']?.pick === 'draw'}
+                    disabled={disabledFor('result_1x2', 'draw')}
                     onPress={() => pickResult('draw', 'Match nul', odds.draw)}
                   />
                   <OddButton
                     label={away}
                     odd={odds.away}
                     selected={legs['result_1x2']?.pick === 'away'}
+                    disabled={disabledFor('result_1x2', 'away')}
                     onPress={() => pickResult('away', away, odds.away)}
                   />
                 </View>
@@ -288,6 +305,7 @@ export default function PronoScreen() {
                     label="Plus de 2.5"
                     odd={odds.over}
                     selected={legs['over_under_2_5']?.pick === 'over'}
+                    disabled={disabledFor('over_under_2_5', 'over')}
                     onPress={() =>
                       toggleLeg({ market: 'over_under_2_5', pick: 'over', label: 'Plus de 2.5 buts', odds: odds.over })
                     }
@@ -296,6 +314,7 @@ export default function PronoScreen() {
                     label="Moins de 2.5"
                     odd={odds.under}
                     selected={legs['over_under_2_5']?.pick === 'under'}
+                    disabled={disabledFor('over_under_2_5', 'under')}
                     onPress={() =>
                       toggleLeg({ market: 'over_under_2_5', pick: 'under', label: 'Moins de 2.5 buts', odds: odds.under })
                     }
@@ -308,6 +327,7 @@ export default function PronoScreen() {
                     label="Oui"
                     odd={odds.bttsYes}
                     selected={legs['btts']?.pick === 'yes'}
+                    disabled={disabledFor('btts', 'yes')}
                     onPress={() =>
                       toggleLeg({ market: 'btts', pick: 'yes', label: 'Les deux marquent', odds: odds.bttsYes })
                     }
@@ -316,6 +336,7 @@ export default function PronoScreen() {
                     label="Non"
                     odd={odds.bttsNo}
                     selected={legs['btts']?.pick === 'no'}
+                    disabled={disabledFor('btts', 'no')}
                     onPress={() =>
                       toggleLeg({ market: 'btts', pick: 'no', label: 'Pas les deux qui marquent', odds: odds.bttsNo })
                     }
@@ -333,27 +354,32 @@ export default function PronoScreen() {
                   </Text>
                   <Stepper value={ag} onChange={(n) => updateExact(hg, n)} />
                   <Pressable
-                    onPress={() =>
-                      exactOn
-                        ? setLeg('exact_score', null)
-                        : setLeg('exact_score', {
-                            market: 'exact_score',
-                            pick: `${hg}-${ag}`,
-                            label: `${hg} - ${ag}`,
-                            odds: exactOdd,
-                          })
+                    disabled={exactDisabled}
+                    onPress={
+                      exactDisabled
+                        ? undefined
+                        : () =>
+                            exactOn
+                              ? setLeg('exact_score', null)
+                              : setLeg('exact_score', {
+                                  market: 'exact_score',
+                                  pick: `${hg}-${ag}`,
+                                  label: `${hg} - ${ag}`,
+                                  odds: exactOdd,
+                                })
                     }
                     style={[
                       {
                         alignItems: 'center',
                         borderRadius: 0,
                         borderWidth: 2,
-                        borderColor: '#FFFFFF',
+                        borderColor: exactDisabled ? '#3A4468' : '#FFFFFF',
                         paddingHorizontal: 12,
                         paddingVertical: 8,
                         backgroundColor: exactOn ? '#E5342B' : '#0A1230',
+                        opacity: exactDisabled ? 0.4 : 1,
                       },
-                      hardShadow(exactOn ? '#0A1230' : '#E5342B', 3),
+                      exactDisabled ? null : hardShadow(exactOn ? '#0A1230' : '#E5342B', 3),
                     ]}
                   >
                     <Text

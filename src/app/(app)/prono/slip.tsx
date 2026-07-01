@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { api } from '@convex/_generated/api';
 import type { Id } from '@convex/_generated/dataModel';
+import { validateLegs } from '@convex/betRules';
 import { useMutation, useQuery } from 'convex/react';
 import { useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
@@ -41,7 +42,10 @@ export default function BetSlip() {
   );
   const balance = me?.flames ?? 0;
   const payout = Math.round(stake * totalOdds);
-  const canValidate = legsArr.length > 0 && stake > 0 && stake <= balance && !busy;
+  // Anti-paris-illégaux : la combinaison doit être logiquement possible (miroir du serveur).
+  const legality = validateLegs(legsArr.map((l) => ({ market: l.market, pick: l.pick })));
+  const canValidate =
+    legsArr.length > 0 && stake > 0 && stake <= balance && legality.ok && !busy;
 
   const chips = [100, 500, 1000];
 
@@ -185,6 +189,11 @@ export default function BetSlip() {
             <Text className="font-display text-2xl text-green">🪙 {payout}</Text>
           </BrutalBox>
 
+          {!legality.ok && legsArr.length > 0 ? (
+            <Text className="mt-4 text-center font-mono-bold text-[12px] uppercase text-red">
+              {legality.reason}
+            </Text>
+          ) : null}
           {error ? (
             <Text className="mt-4 text-center font-mono-bold text-[12px] uppercase text-red">{error}</Text>
           ) : null}
@@ -198,9 +207,11 @@ export default function BetSlip() {
             label={
               busy
                 ? 'Validation…'
-                : stake > balance
-                  ? 'Solde insuffisant'
-                  : `Valider mon pari · ${stake} 🪙`
+                : !legality.ok && legsArr.length > 0
+                  ? 'Combinaison invalide'
+                  : stake > balance
+                    ? 'Solde insuffisant'
+                    : `Valider mon pari · ${stake} 🪙`
             }
           />
         </View>

@@ -2,6 +2,7 @@ import { v } from 'convex/values';
 
 import type { Doc } from './_generated/dataModel';
 import { mutation, query, type QueryCtx } from './_generated/server';
+import { validateLegs } from './betRules';
 import {
   exactOdds,
   lambdasFor,
@@ -224,6 +225,10 @@ export const place = mutation({
     if (!Number.isFinite(stake) || stake <= 0 || !Number.isInteger(stake))
       throw new Error('Mise invalide');
     if (stake > user.flames) throw new Error('Solde de jetons insuffisant');
+
+    // Refuse toute combinaison logiquement impossible (contradictoire) ou corrélée au score exact.
+    const legality = validateLegs(legs);
+    if (!legality.ok) throw new Error(legality.reason);
 
     const { odds, lambdas } = await resolveOdds(ctx, match);
     const seen = new Set<string>();

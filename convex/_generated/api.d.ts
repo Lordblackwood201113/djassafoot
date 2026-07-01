@@ -8,6 +8,7 @@
  * @module
  */
 
+import type * as betRules from "../betRules.js";
 import type * as bets from "../bets.js";
 import type * as crons from "../crons.js";
 import type * as flames from "../flames.js";
@@ -32,6 +33,7 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  betRules: typeof betRules;
   bets: typeof bets;
   crons: typeof crons;
   flames: typeof flames;
