@@ -34,8 +34,8 @@ yarn-error.*
 .env
 .env*.local
 
-# Convex auto-generated (regénéré par `npx convex dev`)
-convex/_generated/
+# Convex auto-generated : COMMITÉ (nécessaire au build Cloudflare, qui ne lance pas `convex codegen`).
+# Regénéré par `npx convex dev`/`codegen` → à re-commit si le schéma/les fonctions changent.
 
 # typescript
 *.tsbuildinfo
