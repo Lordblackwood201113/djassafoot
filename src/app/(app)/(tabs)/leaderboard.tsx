@@ -13,6 +13,7 @@ import { BrutalSegment } from '@/components/brutal/Segment';
 import { LeaguesTab } from '@/components/leagues/LeaguesTab';
 import { EVENTS, track } from '@/lib/analytics';
 import { hardShadow } from '@/lib/brutal';
+import { appOrigin, shareLink } from '@/lib/share';
 
 // Initiales majuscules pour l'avatar de repli (max 2 lettres).
 function initials(name?: string | null) {
@@ -37,6 +38,17 @@ export default function Leaderboard() {
   const [searchQuery, setSearchQuery] = useState('');
   const [loadingActionId, setLoadingActionId] = useState<string | null>(null);
   const [actionError, setActionError] = useState('');
+  const [inviteMsg, setInviteMsg] = useState('');
+
+  // Inviter un ami PAS ENCORE inscrit : on partage le lien de l'app (il s'inscrit puis peut jouer).
+  const onInviteFriend = async () => {
+    const url = appOrigin();
+    const mode = await shareLink(
+      'Rejoins-moi sur Djassa Foot pour pronostiquer la Coupe du Monde 2026 🪙⚽',
+      url,
+    );
+    setInviteMsg(mode === 'copied' ? 'Lien copié ✅' : mode === 'manual' ? url : '');
+  };
 
   // Recherche réactive si la requête contient au moins 2 caractères
   const searchResults = useQuery(
@@ -128,6 +140,23 @@ export default function Leaderboard() {
             />
             {actionError ? (
               <Text className="text-red font-mono-bold text-[11px] uppercase">{actionError}</Text>
+            ) : null}
+
+            {/* Inviter un ami PAS ENCORE inscrit sur l'app */}
+            <Pressable
+              onPress={onInviteFriend}
+              className="flex-row items-center justify-center gap-2 border-2 border-green bg-surface-3 py-2.5"
+              style={{ borderRadius: 0 }}
+            >
+              <Ionicons name="share-social" size={15} color="#3FCB86" />
+              <Text className="font-mono-bold text-[11px] uppercase text-green">
+                Ton ami n&apos;est pas sur l&apos;app ? Invite-le
+              </Text>
+            </Pressable>
+            {inviteMsg ? (
+              <Text selectable numberOfLines={1} className="text-center font-mono text-[10px] text-muted">
+                {inviteMsg}
+              </Text>
             ) : null}
 
             {/* Résultats de recherche */}
