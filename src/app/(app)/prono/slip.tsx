@@ -8,6 +8,10 @@ import { Pressable, ScrollView, Text, View } from 'react-native';
 
 import { FlameBalance } from '@/components/FlameBalance';
 import { ScreenBackground } from '@/components/ScreenBackground';
+import { BrutalBox } from '@/components/brutal/BrutalBox';
+import { BrutalButton } from '@/components/brutal/BrutalButton';
+import { EVENTS, track } from '@/lib/analytics';
+import { hardShadow } from '@/lib/brutal';
 import { frTeam } from '@/lib/teamNames';
 import { usePronoDraft } from '@/store/pronoDraftStore';
 
@@ -49,6 +53,13 @@ export default function BetSlip() {
         stake,
         legs: legsArr.map((l) => ({ market: l.market, pick: l.pick, label: l.label })),
       });
+      track(EVENTS.predictionPlaced, {
+        matchId: matchId as string,
+        stake,
+        legs: legsArr.length,
+        totalOdds,
+        potentialPayout: res.potentialPayout,
+      });
       router.replace(
         `/prono/confirmed?odds=${res.totalOdds}&payout=${res.potentialPayout}&stake=${stake}`,
       );
@@ -64,109 +75,132 @@ export default function BetSlip() {
         <View className="flex-row items-center justify-between px-4 pb-2">
           <Pressable
             onPress={() => (router.canGoBack() ? router.back() : router.replace('/matches'))}
-            className="h-9 w-9 items-center justify-center rounded-2xl bg-surface"
+            className="h-10 w-10 items-center justify-center rounded-none border-2 border-white bg-surface-3"
+            style={hardShadow('#E5342B', 3)}
           >
             <Ionicons name="chevron-back" size={22} color="#ffffff" />
           </Pressable>
-          <Text className="font-display-bold text-base text-white">Mon pari</Text>
+          <Text className="font-display text-lg uppercase text-white" style={{ letterSpacing: 0.5 }}>
+            Mon pari
+          </Text>
           <FlameBalance />
         </View>
 
         {match ? (
-          <Text className="px-5 pb-1 text-center font-ui-medium text-[13px] text-muted">
-            {frTeam(match.homeName)} — {frTeam(match.awayName)}
-          </Text>
+          <View className="flex-row items-center justify-center gap-2 px-5 pb-1">
+            <View className="h-2.5 w-2.5 bg-red" />
+            <Text className="text-center font-mono-bold text-[12px] uppercase text-muted" style={{ letterSpacing: 0.5 }}>
+              {frTeam(match.homeName)} — {frTeam(match.awayName)}
+            </Text>
+          </View>
         ) : null}
 
         <ScrollView className="px-5" contentContainerStyle={{ paddingBottom: 16 }} showsVerticalScrollIndicator={false}>
           {/* Sélections */}
-          <View className="mt-2 rounded-2xl bg-surface px-4 py-1">
+          <BrutalBox shadow="#E5342B" offset={6} borderWidth={2} className="mt-3 bg-surface-3 px-4 py-1">
             {legsArr.length === 0 ? (
-              <Text className="py-6 text-center font-ui text-sm text-muted">Aucune sélection.</Text>
+              <Text className="py-6 text-center font-mono text-[12px] uppercase text-muted">
+                Aucune sélection.
+              </Text>
             ) : (
               legsArr.map((l, i) => (
                 <View
                   key={l.market}
-                  className={`flex-row items-center py-3 ${i > 0 ? 'border-t border-white/[0.06]' : ''}`}
+                  className={`flex-row items-center py-3 ${i > 0 ? 'border-t-2 border-white/20' : ''}`}
                 >
                   <View className="flex-1">
-                    <Text className="font-ui-medium text-[10px] tracking-wide text-muted">
+                    <Text className="font-mono text-[10px] uppercase text-muted" style={{ letterSpacing: 1 }}>
                       {MARKET_LABEL[l.market]}
                     </Text>
-                    <Text className="mt-0.5 font-ui-semibold text-[14px] text-white">{l.label}</Text>
+                    <Text className="mt-1 font-mono-bold text-[13px] uppercase text-white">{l.label}</Text>
                   </View>
-                  <Text className="mr-3 font-display-bold text-[15px] text-white">{l.odds.toFixed(2)}</Text>
-                  <Pressable onPress={() => removeLeg(l.market)} className="h-7 w-7 items-center justify-center">
-                    <Ionicons name="close" size={16} color="#9AA4CC" />
+                  <Text className="mr-3 font-display text-[15px] text-white">{l.odds.toFixed(2)}</Text>
+                  <Pressable
+                    onPress={() => removeLeg(l.market)}
+                    className="h-7 w-7 items-center justify-center rounded-none border-2 border-white bg-ink"
+                  >
+                    <Ionicons name="close" size={14} color="#E5342B" />
                   </Pressable>
                 </View>
               ))
             )}
-          </View>
+          </BrutalBox>
 
           {/* Cote totale */}
-          <View className="mt-3 flex-row items-center justify-between px-1">
-            <Text className="font-ui-medium text-[13px] text-muted">Cote totale</Text>
-            <Text className="font-display-bold text-xl text-red">{totalOdds.toFixed(2)}</Text>
+          <View className="mt-4 flex-row items-center justify-between px-1">
+            <View className="flex-row items-center gap-2">
+              <View className="h-2.5 w-2.5 bg-red" />
+              <Text className="font-mono-bold text-[12px] uppercase text-muted" style={{ letterSpacing: 0.5 }}>
+                Cote totale
+              </Text>
+            </View>
+            <Text className="font-display text-2xl text-red">{totalOdds.toFixed(2)}</Text>
           </View>
 
           {/* Mise */}
-          <View className="mt-4 rounded-2xl bg-surface px-4 py-4">
-            <Text className="font-ui-medium text-[12px] text-muted">Ta mise</Text>
+          <BrutalBox shadow={false} borderWidth={2} className="mt-4 bg-surface-3 px-4 py-4">
+            <Text className="font-mono-bold text-[11px] uppercase text-muted" style={{ letterSpacing: 1 }}>
+              Ta mise
+            </Text>
             <View className="mt-1 flex-row items-baseline gap-2">
-              <Text className="font-display-bold text-3xl text-white">🔥 {stake}</Text>
-              <Text className="font-ui text-sm text-muted">flammes</Text>
+              <Text className="font-display text-4xl text-white">🪙 {stake}</Text>
+              <Text className="font-mono text-[11px] uppercase text-muted">jetons</Text>
             </View>
-            <View className="mt-3 flex-row gap-2">
-              {chips.map((c) => (
-                <Pressable
-                  key={c}
-                  onPress={() => setStake(c)}
-                  disabled={c > balance}
-                  className={`flex-1 items-center rounded-xl py-2 ${
-                    stake === c ? 'bg-red' : c > balance ? 'bg-surface-2 opacity-40' : 'bg-surface-2'
-                  }`}
-                >
-                  <Text className={`font-ui-semibold text-[13px] ${stake === c ? 'text-white' : 'text-white'}`}>
-                    {c}
-                  </Text>
-                </Pressable>
-              ))}
+            <View className="mt-4 flex-row gap-2">
+              {chips.map((c) => {
+                const active = stake === c;
+                const locked = c > balance;
+                return (
+                  <Pressable
+                    key={c}
+                    onPress={() => setStake(c)}
+                    disabled={locked}
+                    className={`flex-1 items-center rounded-none border-2 border-white py-2.5 ${
+                      active ? 'bg-red' : locked ? 'bg-ink opacity-40' : 'bg-ink'
+                    }`}
+                  >
+                    <Text className="font-mono-bold text-[13px] uppercase text-white">{c}</Text>
+                  </Pressable>
+                );
+              })}
               <Pressable
                 onPress={() => setStake(balance)}
-                className={`flex-1 items-center rounded-xl py-2 ${stake === balance && balance > 0 ? 'bg-red' : 'bg-surface-2'}`}
+                className={`flex-1 items-center rounded-none border-2 border-white py-2.5 ${
+                  stake === balance && balance > 0 ? 'bg-red' : 'bg-ink'
+                }`}
               >
-                <Text className="font-ui-semibold text-[13px] text-white">Max</Text>
+                <Text className="font-mono-bold text-[13px] uppercase text-white">Max</Text>
               </Pressable>
             </View>
-            <Text className="mt-2 font-ui text-[11px] text-muted">Solde : 🔥 {balance}</Text>
-          </View>
+            <Text className="mt-3 font-mono text-[11px] uppercase text-muted">Solde : 🪙 {balance}</Text>
+          </BrutalBox>
 
           {/* Gain potentiel */}
-          <View className="mt-3 flex-row items-center justify-between rounded-2xl border border-green/30 bg-green/[0.10] px-4 py-3">
-            <Text className="font-ui-medium text-[13px] text-white">Gain potentiel</Text>
-            <Text className="font-display-bold text-xl text-green">🔥 {payout}</Text>
-          </View>
+          <BrutalBox shadow="#3FCB86" offset={6} borderWidth={2} className="mt-4 flex-row items-center justify-between bg-surface-3 px-4 py-3">
+            <Text className="font-mono-bold text-[12px] uppercase text-white" style={{ letterSpacing: 0.5 }}>
+              Gain potentiel
+            </Text>
+            <Text className="font-display text-2xl text-green">🪙 {payout}</Text>
+          </BrutalBox>
 
           {error ? (
-            <Text className="mt-3 text-center font-ui-medium text-[13px] text-red">{error}</Text>
+            <Text className="mt-4 text-center font-mono-bold text-[12px] uppercase text-red">{error}</Text>
           ) : null}
         </ScrollView>
 
         <View className="px-5 pb-9 pt-2">
-          <Pressable
+          <BrutalButton
+            variant="primary"
             disabled={!canValidate}
             onPress={submit}
-            className={`flex-row items-center justify-center gap-2 rounded-2xl py-4 ${canValidate ? 'bg-red' : 'bg-surface-2'}`}
-          >
-            <Text className={`font-display-bold text-[15px] ${canValidate ? 'text-white' : 'text-muted'}`}>
-              {busy
+            label={
+              busy
                 ? 'Validation…'
                 : stake > balance
                   ? 'Solde insuffisant'
-                  : `Valider mon pari · ${stake} 🔥`}
-            </Text>
-          </Pressable>
+                  : `Valider mon pari · ${stake} 🪙`
+            }
+          />
         </View>
       </View>
     </ScreenBackground>

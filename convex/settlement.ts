@@ -1,134 +1,129 @@
 import { v } from 'convex/values';
 
-import { internalMutation } from './_generated/server';
+import type { Doc } from './_generated/dataModel';
+import { internalMutation, type MutationCtx } from './_generated/server';
 
+// Cœur de la résolution : règle tous les paris `pending` d'un match terminé.
+// Idempotent (ne touche que les paris `pending`) → un 2e appel ne re-paie pas.
+async function settleBetsForMatch(ctx: MutationCtx, match: Doc<'matches'>): Promise<number> {
+  if (match.status !== 'finished' || match.homeScore === undefined || match.awayScore === undefined) {
+    return 0;
+  }
+  const homeScore = match.homeScore;
+  const awayScore = match.awayScore;
+
+  const bets = await ctx.db
+    .query('bets')
+    .withIndex('by_match', (q) => q.eq('matchId', match._id))
+    .collect();
+  const pendingBets = bets.filter((b) => b.status === 'pending');
+
+  let resolvedCount = 0;
+  const now = Date.now();
+
+  for (const bet of pendingBets) {
+    let betWon = true;
+    const updatedLegs = [];
+
+    for (const leg of bet.legs) {
+      let legWon = false;
+      switch (leg.market) {
+        case 'result_1x2': {
+          const actual = homeScore > awayScore ? 'home' : homeScore < awayScore ? 'away' : 'draw';
+          legWon = leg.pick === actual;
+          break;
+        }
+        case 'over_under_2_5': {
+          legWon = leg.pick === (homeScore + awayScore > 2.5 ? 'over' : 'under');
+          break;
+        }
+        case 'btts': {
+          legWon = leg.pick === (homeScore > 0 && awayScore > 0 ? 'yes' : 'no');
+          break;
+        }
+        case 'exact_score': {
+          legWon = leg.pick === `${homeScore}-${awayScore}`;
+          break;
+        }
+        default:
+          legWon = false;
+      }
+      updatedLegs.push({ ...leg, result: (legWon ? 'won' : 'lost') as 'won' | 'lost' | 'void' });
+      if (!legWon) betWon = false;
+    }
+
+    const payout = betWon ? bet.potentialPayout : 0;
+    await ctx.db.patch(bet._id, {
+      status: betWon ? 'won' : 'lost',
+      legs: updatedLegs,
+      payout,
+      settledAt: now,
+    });
+
+    const user = await ctx.db.get(bet.userId);
+    if (user) {
+      if (betWon) {
+        await ctx.db.patch(user._id, { flames: user.flames + payout });
+        await ctx.db.insert('flameTransactions', {
+          userId: user._id,
+          amount: payout,
+          reason: 'prediction_win',
+          refId: bet._id,
+          createdAt: now,
+        });
+      }
+      const title = betWon ? 'Prono gagné ! 🪙' : 'Prono perdu 😢';
+      const body = betWon
+        ? `Félicitations ! Ton prono sur ${match.homeName} - ${match.awayName} est validé. Tu gagnes +${payout.toLocaleString('fr-FR')} 🪙 !`
+        : `Dommage, ton prono sur ${match.homeName} - ${match.awayName} est perdant. Retente ta chance !`;
+      await ctx.db.insert('notifications', {
+        userId: user._id,
+        kind: 'prediction_resolved',
+        title,
+        body,
+        matchId: match._id,
+        betId: bet._id,
+        read: false,
+        createdAt: now,
+      });
+    }
+    resolvedCount++;
+  }
+  return resolvedCount;
+}
+
+// Appelé à la transition d'un match → finished (depuis l'ingestion).
 export const settleMatch = internalMutation({
   args: { matchId: v.id('matches') },
   handler: async (ctx, { matchId }) => {
     const match = await ctx.db.get(matchId);
     if (!match) throw new Error('Match introuvable');
+    return { resolvedCount: await settleBetsForMatch(ctx, match) };
+  },
+});
 
-    // On ne résout que si le match est terminé
-    if (match.status !== 'finished') {
-      return { resolvedCount: 0 };
-    }
-
-    if (match.homeScore === undefined || match.awayScore === undefined) {
-      return { resolvedCount: 0 };
-    }
-
-    const homeScore = match.homeScore;
-    const awayScore = match.awayScore;
-
-    // Récupérer tous les paris pour ce match
-    const bets = await ctx.db
+// Filet de sécurité (cron) : rattrape TOUS les paris en attente sur des matchs déjà terminés
+// (matchs finis avant que le settlement existe, ou échec ponctuel du trigger). Idempotent.
+export const reconcilePending = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const pending = await ctx.db
       .query('bets')
-      .withIndex('by_match', (q) => q.eq('matchId', matchId))
+      .withIndex('by_status', (q) => q.eq('status', 'pending'))
       .collect();
+    const matchIds = [...new Set(pending.map((b) => b.matchId))];
 
-    // Filtrer les paris en attente
-    const pendingBets = bets.filter((b) => b.status === 'pending');
-    let resolvedCount = 0;
-    const now = Date.now();
-
-    for (const bet of pendingBets) {
-      let betWon = true;
-      const updatedLegs = [];
-
-      for (const leg of bet.legs) {
-        let legWon = false;
-
-        switch (leg.market) {
-          case 'result_1x2': {
-            const actualResult =
-              homeScore > awayScore
-                ? 'home'
-                : homeScore < awayScore
-                  ? 'away'
-                  : 'draw';
-            legWon = leg.pick === actualResult;
-            break;
-          }
-          case 'over_under_2_5': {
-            const totalGoals = homeScore + awayScore;
-            const actualResult = totalGoals > 2.5 ? 'over' : 'under';
-            legWon = leg.pick === actualResult;
-            break;
-          }
-          case 'btts': {
-            const actualResult = homeScore > 0 && awayScore > 0 ? 'yes' : 'no';
-            legWon = leg.pick === actualResult;
-            break;
-          }
-          case 'exact_score': {
-            const actualResult = `${homeScore}-${awayScore}`;
-            legWon = leg.pick === actualResult;
-            break;
-          }
-          default:
-            legWon = false;
-        }
-
-        updatedLegs.push({
-          ...leg,
-          result: (legWon ? 'won' : 'lost') as 'won' | 'lost' | 'void',
-        });
-
-        if (!legWon) {
-          betWon = false;
-        }
+    let resolved = 0;
+    let matchesSettled = 0;
+    for (const matchId of matchIds) {
+      const match = await ctx.db.get(matchId);
+      if (!match) continue;
+      const n = await settleBetsForMatch(ctx, match);
+      if (n > 0) {
+        resolved += n;
+        matchesSettled++;
       }
-
-      const nextStatus = betWon ? 'won' : 'lost';
-      const payout = betWon ? bet.potentialPayout : 0;
-
-      // Mettre à jour le statut du pari et de ses jambes
-      await ctx.db.patch(bet._id, {
-        status: nextStatus,
-        legs: updatedLegs,
-        payout: payout,
-        settledAt: now,
-      });
-
-      // Mettre à jour le solde et les points de l'utilisateur
-      const user = await ctx.db.get(bet.userId);
-      if (user) {
-        if (betWon) {
-          await ctx.db.patch(user._id, {
-            flames: user.flames + payout,
-            points: user.points + payout,
-          });
-
-          // Créer la transaction de gain de flammes
-          await ctx.db.insert('flameTransactions', {
-            userId: user._id,
-            amount: payout,
-            reason: 'prediction_win',
-            refId: bet._id,
-            createdAt: now,
-          });
-        }
-
-        // Créer une notification in-app
-        const title = betWon ? 'Prono gagné ! 🔥' : 'Prono perdu 😢';
-        const body = betWon
-          ? `Félicitations ! Ton prono sur le match ${match.homeName} - ${match.awayName} a été validé. Tu gagnes +${payout.toLocaleString('fr-FR')} 🔥 !`
-          : `Dommage, ton prono sur le match ${match.homeName} - ${match.awayName} est perdant. Retente ta chance au prochain match !`;
-
-        await ctx.db.insert('notifications', {
-          userId: user._id,
-          kind: 'prediction_resolved',
-          title,
-          body,
-          matchId: match._id,
-          read: false,
-          createdAt: now,
-        });
-      }
-
-      resolvedCount++;
     }
-
-    return { resolvedCount };
+    return { pendingBets: pending.length, matchesSettled, resolved };
   },
 });

@@ -13,12 +13,19 @@ import {
   Sora_700Bold,
   Sora_800ExtraBold,
 } from '@expo-google-fonts/sora';
+import {
+  SpaceMono_400Regular,
+  SpaceMono_700Bold,
+} from '@expo-google-fonts/space-mono';
 import { ConvexReactClient } from 'convex/react';
 import { ConvexProviderWithClerk } from 'convex/react-clerk';
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
+
+import { AnalyticsBridge } from '@/components/AnalyticsBridge';
+import { initAnalytics } from '@/lib/analytics';
 
 const convex = new ConvexReactClient(process.env.EXPO_PUBLIC_CONVEX_URL!, {
   unsavedChangesWarning: false,
@@ -35,11 +42,17 @@ export default function RootLayout() {
     Inter_500Medium,
     Inter_600SemiBold,
     Inter_700Bold,
+    SpaceMono_400Regular,
+    SpaceMono_700Bold,
   });
 
   useEffect(() => {
     if (fontsLoaded) SplashScreen.hideAsync();
   }, [fontsLoaded]);
+
+  useEffect(() => {
+    initAnalytics();
+  }, []);
 
   if (!fontsLoaded) return null;
 
@@ -49,6 +62,7 @@ export default function RootLayout() {
       tokenCache={tokenCache}
     >
       <ConvexProviderWithClerk client={convex} useAuth={useAuth}>
+        <AnalyticsBridge />
         <Stack
           screenOptions={{
             headerShown: false,

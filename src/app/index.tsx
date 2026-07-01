@@ -1,9 +1,12 @@
 import { useAuth } from '@clerk/expo';
 import { Image } from 'expo-image';
 import { Redirect, useRouter } from 'expo-router';
-import { ActivityIndicator, Pressable, Text, View } from 'react-native';
+import { useEffect, useRef } from 'react';
+import { ActivityIndicator, Text, View } from 'react-native';
 
+import { BrutalButton } from '@/components/brutal/BrutalButton';
 import { ScreenBackground } from '@/components/ScreenBackground';
+import { EVENTS, track } from '@/lib/analytics';
 
 const logo = require('../../assets/logo/djassafoot.png');
 
@@ -41,6 +44,14 @@ const ROWS = [
 export default function Index() {
   const { isLoaded, isSignedIn } = useAuth();
   const router = useRouter();
+
+  const started = useRef(false);
+  useEffect(() => {
+    if (isLoaded && !isSignedIn && !started.current) {
+      track(EVENTS.onboardingStarted);
+      started.current = true;
+    }
+  }, [isLoaded, isSignedIn]);
 
   if (!isLoaded) {
     return (
@@ -103,20 +114,14 @@ export default function Index() {
           </Text>
         </View>
 
-        {/* Footer — CTA blanc + lien connexion */}
-        <View className="gap-1.5 px-6 pb-11">
-          <Pressable
-            onPress={() => router.push('/sign-up')}
-            className="w-full items-center rounded-full bg-white px-6 py-4"
-          >
-            <Text className="font-ui-bold text-[17px] text-ink">Commencer</Text>
-          </Pressable>
-          <Pressable
+        {/* Footer — CTA brutalistes (seuls éléments conservés en brutalist) */}
+        <View className="gap-3 px-6 pb-11">
+          <BrutalButton label="Commencer" variant="light" onPress={() => router.push('/sign-up')} />
+          <BrutalButton
+            label="J'ai déjà un compte"
+            variant="ghost"
             onPress={() => router.push('/sign-in')}
-            className="w-full items-center px-6 py-3.5"
-          >
-            <Text className="font-ui-semibold text-base text-muted">{"J'ai déjà un compte"}</Text>
-          </Pressable>
+          />
         </View>
       </View>
     </ScreenBackground>

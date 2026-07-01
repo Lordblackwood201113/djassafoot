@@ -108,10 +108,11 @@ Légende : `[ ]` à faire · `[~]` en cours · `[x]` fait.
 ---
 
 ## Phase 8 — Analytics (PostHog)  ·  branche `phase-8-analytics`
-- [ ] `lib/analytics.ts` : wrapper split `posthog-js` (web) / `posthog-react-native` (natif)
-- [ ] `identify(clerkUserId)` après login, `reset()` au logout
-- [ ] Events : `onboarding_started`, `prediction_placed`, `match_viewed`, `daily_bonus_claimed`, `friend_added`
-- [ ] Funnels onboarding + rétention dans PostHog
+- [x] `lib/analytics.ts` (natif stub) + `analytics.web.ts` (`posthog-js`) + `analyticsEvents.ts` — split par extension Metro ; natif = no-op jusqu'à Phase 9
+- [x] `identify(clerkUserId)` après login, `reset()` au logout (`AnalyticsBridge`)
+- [x] Events : `onboarding_started`, `prediction_placed`, `match_viewed`, `daily_bonus_claimed`, `friend_added`
+- [ ] Funnels onboarding + rétention dans PostHog (config dashboard, une fois la clé posée + data qui remonte)
+- ⚠️ Remplir `EXPO_PUBLIC_POSTHOG_KEY` dans `.env.local` (sinon analytics no-op). Natif (`posthog-react-native`) = à brancher en Phase 9.
 
 **DoD** : les events clés remontent dans PostHog, rattachés au bon utilisateur ; un funnel onboarding est visible.
 

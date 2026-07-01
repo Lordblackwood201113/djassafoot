@@ -3,17 +3,21 @@ import { v } from 'convex/values';
 import type { Doc } from './_generated/dataModel';
 import { mutation, query, type QueryCtx } from './_generated/server';
 import {
+  exactOdds,
   lambdasFor,
   marketOdds,
-  oddsForLeg,
   strengthFromPoints,
   type Lambdas,
+  type MarketOdds,
 } from './oddsShared';
 
 const MARKETS = ['result_1x2', 'over_under_2_5', 'btts', 'exact_score'] as const;
 type Market = (typeof MARKETS)[number];
 
 const round2 = (n: number) => Math.round(n * 100) / 100;
+// Marge maison appliquée aux cotes RÉELLES (Betfair = sans marge) → économie de jetons saine.
+const REAL_MARGIN = 0.95;
+const withMargin = (x?: number) => (x ? Math.max(1.04, round2(x * REAL_MARGIN)) : undefined);
 
 // λ du match à partir des points de poule des deux équipes.
 async function lambdasForMatch(ctx: QueryCtx, match: Doc<'matches'>): Promise<Lambdas> {
@@ -37,14 +41,59 @@ async function currentUser(ctx: QueryCtx) {
     .unique();
 }
 
+// Cotes effectives d'un match : vraies cotes (odds-api.io) marché par marché si dispo, sinon Poisson.
+async function resolveOdds(
+  ctx: QueryCtx,
+  match: Doc<'matches'>,
+): Promise<{ odds: MarketOdds; lambdas: Lambdas; source: 'odds-api.io' | 'poisson' }> {
+  const lambdas = await lambdasForMatch(ctx, match);
+  const base = marketOdds(lambdas); // Poisson (déjà margé)
+  const row = await ctx.db
+    .query('odds')
+    .withIndex('by_match', (q) => q.eq('matchId', match._id))
+    .unique();
+  if (!row) return { odds: base, lambdas, source: 'poisson' };
+  return {
+    odds: {
+      home: withMargin(row.home) ?? base.home,
+      draw: withMargin(row.draw) ?? base.draw,
+      away: withMargin(row.away) ?? base.away,
+      over: withMargin(row.over) ?? base.over,
+      under: withMargin(row.under) ?? base.under,
+      bttsYes: withMargin(row.bttsYes) ?? base.bttsYes,
+      bttsNo: withMargin(row.bttsNo) ?? base.bttsNo,
+    },
+    lambdas,
+    source: 'odds-api.io',
+  };
+}
+
+// Cote d'un leg depuis les cotes effectives (score exact toujours via Poisson/λ).
+function legOdds(o: MarketOdds, lambdas: Lambdas, market: string, pick: string): number {
+  switch (market) {
+    case 'result_1x2':
+      return pick === 'home' ? o.home : pick === 'away' ? o.away : o.draw;
+    case 'over_under_2_5':
+      return pick === 'over' ? o.over : o.under;
+    case 'btts':
+      return pick === 'yes' ? o.bttsYes : o.bttsNo;
+    case 'exact_score': {
+      const [h, a] = pick.split('-').map((n) => parseInt(n, 10));
+      return exactOdds(lambdas, h || 0, a || 0);
+    }
+    default:
+      return 1;
+  }
+}
+
 // Cotes de tous les marchés d'un match (+ λ pour calculer le score exact côté client).
 export const oddsForMatch = query({
   args: { matchId: v.id('matches') },
   handler: async (ctx, { matchId }) => {
     const match = await ctx.db.get(matchId);
     if (!match) return null;
-    const lambdas = await lambdasForMatch(ctx, match);
-    return { ...marketOdds(lambdas), lambdas, status: match.status, kickoff: match.kickoff };
+    const r = await resolveOdds(ctx, match);
+    return { ...r.odds, lambdas: r.lambdas, source: r.source, status: match.status, kickoff: match.kickoff };
   },
 });
 
@@ -96,7 +145,34 @@ export const mine = query({
   },
 });
 
-// Pose un pari combiné : valide, recalcule les cotes (autoritatif), débite les flammes.
+// Un pari précis (écran de résultat, ouvert depuis l'historique ou une notification).
+export const byId = query({
+  args: { id: v.id('bets') },
+  handler: async (ctx, { id }) => {
+    const user = await currentUser(ctx);
+    if (!user) return null;
+    const bet = await ctx.db.get(id);
+    if (!bet || bet.userId !== user._id) return null;
+    const m = await ctx.db.get(bet.matchId);
+    return {
+      ...bet,
+      match: m
+        ? {
+            homeName: m.homeName,
+            awayName: m.awayName,
+            kickoff: m.kickoff,
+            status: m.status,
+            homeScore: m.homeScore,
+            awayScore: m.awayScore,
+            homePenalty: m.homePenalty,
+            awayPenalty: m.awayPenalty,
+          }
+        : null,
+    };
+  },
+});
+
+// Pose un pari combiné : valide, recalcule les cotes (autoritatif), débite les jetons.
 export const place = mutation({
   args: {
     matchId: v.id('matches'),
@@ -113,9 +189,9 @@ export const place = mutation({
     if (legs.length === 0) throw new Error('Aucune sélection');
     if (!Number.isFinite(stake) || stake <= 0 || !Number.isInteger(stake))
       throw new Error('Mise invalide');
-    if (stake > user.flames) throw new Error('Solde de flammes insuffisant');
+    if (stake > user.flames) throw new Error('Solde de jetons insuffisant');
 
-    const lambdas = await lambdasForMatch(ctx, match);
+    const { odds, lambdas } = await resolveOdds(ctx, match);
     const seen = new Set<string>();
     const computed = legs.map((leg) => {
       if (!MARKETS.includes(leg.market as Market)) throw new Error(`Marché inconnu : ${leg.market}`);
@@ -125,7 +201,7 @@ export const place = mutation({
         market: leg.market as Market,
         pick: leg.pick,
         label: leg.label,
-        odds: oddsForLeg(lambdas, leg.market, leg.pick),
+        odds: legOdds(odds, lambdas, leg.market, leg.pick),
       };
     });
 

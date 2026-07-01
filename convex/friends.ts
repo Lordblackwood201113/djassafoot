@@ -61,7 +61,7 @@ export const searchUsers = query({
           _id: u._id,
           username: u.username,
           avatarUrl: u.avatarUrl,
-          points: u.points,
+          flames: u.flames,
           relationship: rel ? rel.status : 'none',
           relationshipId: rel ? rel.id : null,
         };
@@ -92,7 +92,7 @@ export const listPendingRequests = query({
           senderId: sender._id,
           username: sender.username,
           avatarUrl: sender.avatarUrl,
-          points: sender.points,
+          flames: sender.flames,
           createdAt: p.createdAt,
         });
       }

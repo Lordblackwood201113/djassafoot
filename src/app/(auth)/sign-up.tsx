@@ -1,4 +1,5 @@
 import { useSignUp } from '@clerk/expo/legacy';
+import { Ionicons } from '@expo/vector-icons';
 import { Link, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
@@ -12,10 +13,13 @@ import {
 
 import { ScreenBackground } from '@/components/ScreenBackground';
 import { SocialAuth } from '@/components/auth/SocialAuth';
-import { Button } from '@/components/ui/Button';
+import { BrutalButton } from '@/components/brutal/BrutalButton';
 import { CodeInput } from '@/components/ui/CodeInput';
 import { Divider } from '@/components/ui/Divider';
 import { TextField } from '@/components/ui/TextField';
+import { EVENTS, track } from '@/lib/analytics';
+import { hardShadow } from '@/lib/brutal';
+import { postAuthHref } from '@/store/pendingLeagueStore';
 
 const RESEND_SECONDS = 60;
 
@@ -62,7 +66,8 @@ export default function SignUp() {
       const res = await signUp.attemptEmailAddressVerification({ code: codeValue ?? code });
       if (res.status === 'complete') {
         await setActive({ session: res.createdSessionId });
-        router.replace('/home');
+        track(EVENTS.userSignedUp, { method: 'email' });
+        router.replace(postAuthHref() as never);
       } else {
         setError('Code incorrect.');
       }
@@ -98,20 +103,24 @@ export default function SignUp() {
             <View className="px-4 pt-2">
               <Pressable
                 onPress={() => setPending(false)}
-                className="h-9 w-9 items-center justify-center rounded-full"
+                className="h-10 w-10 items-center justify-center border-2 border-white bg-ink"
+                style={[{ borderRadius: 0 }, hardShadow('#0A1230', 4)]}
               >
-                <Text className="text-3xl leading-none text-white">‹</Text>
+                <Ionicons name="chevron-back" size={22} color="#ffffff" />
               </Pressable>
             </View>
 
             <View className="flex-1 justify-center gap-6 px-8">
               <View className="items-center gap-2">
-                <Text className="text-center font-display text-3xl text-white">
-                  Vérifie tes mails
-                </Text>
+                <View className="flex-row items-center gap-2.5">
+                  <View className="h-3.5 w-3.5 bg-red" />
+                  <Text className="text-center font-display text-3xl uppercase text-white">
+                    Vérifie tes mails
+                  </Text>
+                </View>
                 <Text
-                  className="text-center font-ui text-base text-muted"
-                  style={{ lineHeight: 22 }}
+                  className="text-center font-mono text-[12px] uppercase text-white/70"
+                  style={{ lineHeight: 20, letterSpacing: 0.3 }}
                 >
                   {"On t'a envoyé un code à 6 chiffres à "}{email}
                 </Text>
@@ -125,24 +134,27 @@ export default function SignUp() {
               />
 
               {error ? (
-                <Text className="text-center font-ui text-sm text-red">{error}</Text>
+                <Text className="text-center font-mono-bold text-[12px] uppercase text-red">
+                  {error}
+                </Text>
               ) : null}
 
               {seconds > 0 ? (
                 <View className="flex-row items-center justify-center">
-                  <Text className="font-ui text-sm text-muted">Renvoyer dans </Text>
-                  <Text className="font-ui-bold text-sm text-white">{mmss}</Text>
+                  <Text className="font-mono text-[12px] uppercase text-white/70">Renvoyer dans </Text>
+                  <Text className="font-mono-bold text-[12px] uppercase text-white">{mmss}</Text>
                 </View>
               ) : (
                 <Pressable onPress={onResend} className="items-center">
-                  <Text className="font-ui-semibold text-sm text-red">Renvoyer le code</Text>
+                  <Text className="font-mono-bold text-[12px] uppercase text-red">Renvoyer le code</Text>
                 </Pressable>
               )}
             </View>
 
             <View className="px-6 pb-11">
-              <Button
+              <BrutalButton
                 label="Valider"
+                variant="primary"
                 onPress={() => onVerify()}
                 loading={loading}
                 disabled={code.length < 6}
@@ -172,7 +184,11 @@ export default function SignUp() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          <Text className="font-display text-3xl text-white">Créer un compte</Text>
+          {/* En-tête brutaliste */}
+          <View className="flex-row items-center gap-2.5">
+            <View className="h-3.5 w-3.5 bg-red" />
+            <Text className="font-display text-3xl uppercase text-white">Créer un compte</Text>
+          </View>
 
           <View className="flex-row gap-3">
             <View className="flex-1">
@@ -208,14 +224,18 @@ export default function SignUp() {
             placeholder="8 caractères minimum"
           />
 
-          {error ? <Text className="font-ui text-sm text-red">{error}</Text> : null}
-          <Button label="S'inscrire" onPress={onSignUp} loading={loading} />
+          {error ? (
+            <Text className="font-mono-bold text-[12px] uppercase text-red">{error}</Text>
+          ) : null}
+          <BrutalButton label="S'inscrire" variant="primary" onPress={onSignUp} loading={loading} />
 
           <Divider />
           <SocialAuth />
 
-          <Link href="/sign-in" className="text-center font-ui text-sm text-muted">
-            Déjà un compte ? Se connecter
+          <Link href="/sign-in" className="text-center">
+            <Text className="font-mono text-[12px] uppercase text-muted">
+              Déjà un compte ? <Text className="font-mono-bold text-red">Se connecter</Text>
+            </Text>
           </Link>
 
           {/* Point de montage Smart CAPTCHA Clerk (devient <div id="clerk-captcha"> sur web) */}

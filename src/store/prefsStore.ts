@@ -16,7 +16,7 @@ interface PrefsState {
 
 /**
  * Préférences UI persistées (thème, langue, onboarding).
- * État CLIENT uniquement — les données serveur (matchs, pronos, flammes) vivent dans Convex.
+ * État CLIENT uniquement — les données serveur (matchs, pronos, jetons) vivent dans Convex.
  */
 export const usePrefsStore = create<PrefsState>()(
   persist(

@@ -6,17 +6,19 @@ import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 
 import { AppHeader } from '@/components/AppHeader';
+import { BrutalBox } from '@/components/brutal/BrutalBox';
+import { BrutalSegment } from '@/components/brutal/Segment';
 import { CompetitionSwitcher } from '@/components/CompetitionSwitcher';
 import { MatchRow } from '@/components/match/MatchRow';
 import { ScreenBackground } from '@/components/ScreenBackground';
-import { SegmentControl } from '@/components/ui/SegmentControl';
+import { hardShadow } from '@/lib/brutal';
 import { phaseHeading } from '@/lib/format';
 
 const DAY = 24 * 60 * 60 * 1000;
 const SEGMENTS = [
-  { key: 'yesterday', label: 'Hier' },
-  { key: 'today', label: "Aujourd'hui" },
-  { key: 'upcoming', label: 'À venir' },
+  { key: 'yesterday', label: 'HIER' },
+  { key: 'today', label: "AUJOURD'HUI" },
+  { key: 'upcoming', label: 'À VENIR' },
 ];
 
 function startOfToday(): number {
@@ -61,20 +63,23 @@ export default function Matches() {
         <AppHeader />
 
         <View className="flex-row items-center justify-between px-5 pb-3 pt-1">
-          <Text className="font-display text-2xl text-white">Matchs</Text>
+          <Text className="font-display text-[26px] uppercase text-white" style={{ letterSpacing: 0.5 }}>
+            Matchs
+          </Text>
           <View className="flex-row items-center gap-2.5">
             <Pressable
               onPress={() => router.push('/bracket')}
-              className="h-9 w-9 items-center justify-center rounded-2xl bg-surface"
+              className="h-9 w-9 items-center justify-center border-2 border-white bg-ink"
+              style={[{ borderRadius: 0 }, hardShadow('#E5342B', 3)]}
             >
-              <MaterialCommunityIcons name="tournament" size={20} color="#ffffff" />
+              <MaterialCommunityIcons name="tournament" size={18} color="#ffffff" />
             </Pressable>
             <CompetitionSwitcher />
           </View>
         </View>
 
-        <View className="pb-3.5">
-          <SegmentControl segments={SEGMENTS} value={seg} onChange={setSeg} />
+        <View className="px-5 pb-3.5">
+          <BrutalSegment options={SEGMENTS} value={seg} onChange={setSeg} />
         </View>
 
         <ScrollView
@@ -82,19 +87,23 @@ export default function Matches() {
           showsVerticalScrollIndicator={false}
         >
           {sections.map((sec) => (
-            <View key={sec.heading}>
-              <View className="flex-row items-center gap-2 px-5 pb-1.5 pt-4">
-                <View className="h-3.5 w-1 rounded-full bg-red" />
-                <Text className="font-display-bold text-[14px] text-white">{sec.heading}</Text>
-                <Text className="font-ui text-[12px] text-muted">{sec.matches.length}</Text>
+            <View key={sec.heading} className="px-5 pt-4">
+              <View className="mb-2 flex-row items-center gap-2.5">
+                <View className="h-4 w-1 bg-red" style={{ borderRadius: 0 }} />
+                <Text className="font-display text-[14px] uppercase text-white" style={{ letterSpacing: 0.5 }}>
+                  {sec.heading}
+                </Text>
+                <Text className="font-mono-bold text-[12px] text-muted">{sec.matches.length}</Text>
               </View>
-              {sec.matches.map((m) => (
-                <MatchRow key={m._id} match={m} />
-              ))}
+              <BrutalBox shadow="#E5342B" offset={5} borderWidth={2} className="bg-surface-3">
+                {sec.matches.map((m) => (
+                  <MatchRow key={m._id} match={m} />
+                ))}
+              </BrutalBox>
             </View>
           ))}
           {all !== undefined && filtered.length === 0 ? (
-            <Text className="mt-12 text-center font-ui text-sm text-muted">
+            <Text className="mt-12 text-center font-mono uppercase text-[12px] text-muted" style={{ letterSpacing: 0.5 }}>
               Aucun match {emptyLabel}.
             </Text>
           ) : null}

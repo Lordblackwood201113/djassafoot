@@ -10,19 +10,19 @@ async function currentUser(ctx: QueryCtx) {
     .unique();
 }
 
-// Classement global : top 100 des utilisateurs ordonnés par points
+// Classement global : top 100 des utilisateurs ordonnés par solde de jetons
 export const global = query({
   args: {},
   handler: async (ctx) => {
     return await ctx.db
       .query('users')
-      .withIndex('by_points')
+      .withIndex('by_flames')
       .order('desc')
       .take(100);
   },
 });
 
-// Classement amis : l'utilisateur + tous ses amis acceptés, ordonnés par points
+// Classement amis : l'utilisateur + tous ses amis acceptés, ordonnés par solde de jetons
 export const friends = query({
   args: {},
   handler: async (ctx) => {
@@ -59,7 +59,7 @@ export const friends = query({
       }
     }
 
-    // Trier les membres par score de points décroissant
-    return members.sort((a, b) => b.points - a.points);
+    // Trier les membres par solde de jetons décroissant
+    return members.sort((a, b) => b.flames - a.flames);
   },
 });

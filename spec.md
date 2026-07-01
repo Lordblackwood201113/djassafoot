@@ -93,18 +93,20 @@ djassafoot/                                # racine de l'app Expo (SDK 56 → co
 
 ---
 
-## 4. Économie des flammes 🔥 (100 % virtuel)
+## 4. Économie des jetons 🪙 (100 % virtuel)
 
-| Source / dépense | Montant (à calibrer) | Règle |
+> **Principe** : les jetons doivent rester RARES — les gains viennent surtout des **pronos gagnés** (skill), pas de robinets gratuits. Pas d'inflation.
+
+| Source / dépense | Montant | Règle |
 |---|---|---|
-| **Bonus d'inscription** | +1000 | une seule fois, à la création du user |
-| **Bonus quotidien** | +100 (× multiplicateur de streak) | 1×/24 h, via `claimDailyBonus` (vérifie `lastDailyBonusAt`) |
-| **Pub récompensée** | +50 | **mobile uniquement** (AdMob, Phase 9), cap journalier |
-| **Parrainage** | +X parrain & filleul | code de parrainage |
+| **Bonus d'inscription** | +500 | une seule fois, à la création du user |
+| **Bonus quotidien** | **+20 fixe** (pas de multiplicateur) | 1×/24 h, via `claimDailyBonus` ; la série est affichée mais ne gonfle plus le gain |
+| **Parrainage** | **+10** (parrain) | petit, non inflationniste (système de parrainage à construire) |
+| **Pub récompensée** | **retiré (hors scope)** | pas de gain par pub — biaiserait le jeu |
 | **Mise sur un prono** | −`stake` | débit à la pose du prono |
-| **Gain de prono** | +`stake × odds` | crédit à la résolution si gagné |
+| **Gain de prono** | +`stake × cote totale` | crédit à la résolution si combiné gagnant |
 
-**Interdits absolus** : achat de flammes, conversion en argent, retrait. Chaque mouvement = une ligne dans `flameTransactions` (source de vérité auditable ; `users.flames` = solde dérivé/maintenu).
+**Interdits absolus** : achat de jetons, conversion en argent, retrait. Chaque mouvement = une ligne dans `flameTransactions` (nom interne conservé ; `users.flames` = solde dérivé/maintenu). UI : « jetons » + 🪙.
 
 **Résolution (settlement)** : quand un match passe `finished`, `settlement.ts` (internalMutation) parcourt les `predictions` `pending` de ce match, calcule `won`/`lost`, crédite les gains, met à jour `users.points`.
 

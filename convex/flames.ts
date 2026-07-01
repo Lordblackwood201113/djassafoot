@@ -1,5 +1,8 @@
 import { mutation, query, type QueryCtx } from './_generated/server';
 
+// Bonus quotidien FIXE (économie maîtrisée : pas de multiplicateur qui inflate les jetons).
+const DAILY_BONUS = 20;
+
 async function currentUser(ctx: QueryCtx) {
   const identity = await ctx.auth.getUserIdentity();
   if (!identity) return null;
@@ -9,7 +12,7 @@ async function currentUser(ctx: QueryCtx) {
     .unique();
 }
 
-// Récupère l'historique des transactions de flammes de l'utilisateur connecté
+// Récupère l'historique des transactions de jetons de l'utilisateur connecté
 export const myTransactions = query({
   args: {},
   handler: async (ctx) => {
@@ -59,9 +62,8 @@ export const claimDailyBonus = mutation({
       newStreak = 1;
     }
 
-    // Le streak max est capé à 5 (donc multiplicateur max ×5 = 500 🔥)
-    const multiplier = Math.min(newStreak, 5);
-    const bonusAmount = 100 * multiplier;
+    // Montant fixe quel que soit le streak (le streak reste affiché, mais ne gonfle plus le gain).
+    const bonusAmount = DAILY_BONUS;
 
     // Mettre à jour l'utilisateur (solde + streak + date du dernier bonus)
     await ctx.db.patch(user._id, {

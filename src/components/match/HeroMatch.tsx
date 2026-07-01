@@ -1,55 +1,96 @@
 import type { Doc } from '@convex/_generated/dataModel';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { Pressable, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 
+import { BrutalBox } from '@/components/brutal/BrutalBox';
+import { BrutalButton } from '@/components/brutal/BrutalButton';
+import { Flag } from '@/components/brutal/Flag';
+import { hardShadow } from '@/lib/brutal';
 import { formatHeroDate } from '@/lib/format';
 import { frTeam } from '@/lib/teamNames';
-
-import { Badge } from './Badge';
 
 export function HeroMatch({ match }: { match: Doc<'matches'> }) {
   const router = useRouter();
   const live = match.status === 'live';
 
   return (
-    <LinearGradient
-      colors={['#2C40A0', '#3A1530']}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-      style={{ borderRadius: 22 }}
-    >
-      <View className="items-center gap-3 px-4 py-5">
-        <Text className="font-ui-bold text-xs text-red" style={{ letterSpacing: 1 }}>
-          {live ? 'COUPE DU MONDE · EN DIRECT' : 'COUPE DU MONDE · EN VEDETTE'}
+    <BrutalBox shadow="#E5342B" offset={6} borderWidth={2} className="bg-surface-3 p-4">
+      <View className="flex-row items-center gap-2">
+        <View style={{ width: 8, height: 8 }} className="bg-red" />
+        <Text
+          className="font-mono-bold text-[11px] uppercase text-red"
+          style={{ letterSpacing: 1.5 }}
+        >
+          {live ? 'COUPE DU MONDE · EN DIRECT' : 'COUPE DU MONDE · À LA UNE'}
         </Text>
+      </View>
 
-        <View className="flex-row items-center justify-center gap-6">
-          <Badge url={match.homeBadgeUrl} size={62} />
-          {live ? (
-            <Text className="font-display text-2xl text-white">
-              {match.homeScore ?? 0} - {match.awayScore ?? 0}
-            </Text>
-          ) : (
-            <Text className="font-display text-xl text-muted">VS</Text>
-          )}
-          <Badge url={match.awayBadgeUrl} size={62} />
+      <View className="mt-5 flex-row items-center justify-between">
+        <View className="items-center gap-2.5" style={{ width: 100 }}>
+          <View
+            className="items-center justify-center border-2 border-white bg-white"
+            style={{ width: 60, height: 60, borderRadius: 0, ...hardShadow('#0A1230', 4) }}
+          >
+            <Flag name={match.homeName} size={42} />
+          </View>
+          <Text
+            className="text-center font-mono-bold text-[11px] uppercase text-white"
+            numberOfLines={2}
+          >
+            {frTeam(match.homeName)}
+          </Text>
         </View>
 
-        <Text className="text-center font-display text-[22px] text-white">
-          {frTeam(match.homeName)} — {frTeam(match.awayName)}
-        </Text>
-        <Text className="font-ui text-[13px] text-muted">
-          {live ? (match.minute ? `${match.minute}' en cours` : 'En cours') : formatHeroDate(match.kickoff)}
-        </Text>
+        {live ? (
+          <View
+            className="items-center justify-center border-2 border-white bg-ink px-3 py-2"
+            style={{ borderRadius: 0, ...hardShadow('#E5342B', 4) }}
+          >
+            <Text className="font-display text-3xl uppercase text-white">
+              {match.homeScore ?? 0} - {match.awayScore ?? 0}
+            </Text>
+          </View>
+        ) : (
+          <View
+            className="items-center justify-center bg-red px-4 py-2"
+            style={{ borderRadius: 0, ...hardShadow('#0A1230', 4) }}
+          >
+            <Text className="font-display text-2xl uppercase text-white">VS</Text>
+          </View>
+        )}
 
-        <Pressable
-          onPress={() => router.push(`/match/${match._id}`)}
-          className="mt-1 rounded-full bg-red px-7 py-3"
-        >
-          <Text className="font-ui-bold text-[15px] text-white">Pronostiquer</Text>
-        </Pressable>
+        <View className="items-center gap-2.5" style={{ width: 100 }}>
+          <View
+            className="items-center justify-center border-2 border-white bg-white"
+            style={{ width: 60, height: 60, borderRadius: 0, ...hardShadow('#0A1230', 4) }}
+          >
+            <Flag name={match.awayName} size={42} />
+          </View>
+          <Text
+            className="text-center font-mono-bold text-[11px] uppercase text-white"
+            numberOfLines={2}
+          >
+            {frTeam(match.awayName)}
+          </Text>
+        </View>
       </View>
-    </LinearGradient>
+
+      <View style={{ height: 2, backgroundColor: '#FFFFFF' }} className="mt-5" />
+      <Text className="mt-3 text-center font-mono text-[12px] uppercase text-muted">
+        {live
+          ? match.minute
+            ? `${match.minute}' EN COURS`
+            : 'EN COURS'
+          : formatHeroDate(match.kickoff)}
+      </Text>
+
+      <View className="mt-4">
+        <BrutalButton
+          label="PRONOSTIQUER"
+          variant="primary"
+          onPress={() => router.push(`/match/${match._id}`)}
+        />
+      </View>
+    </BrutalBox>
   );
 }

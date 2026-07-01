@@ -1,4 +1,4 @@
-import { Feather } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 import { Pressable, Text, View } from 'react-native';
 
 type TabBarProps = {
@@ -11,29 +11,27 @@ type TabBarProps = {
   };
 };
 
-const TABS: Record<string, { icon: keyof typeof Feather.glyphMap; label: string }> = {
-  home: { icon: 'home', label: 'Accueil' },
-  matches: { icon: 'calendar', label: 'Matchs' },
-  pronos: { icon: 'target', label: 'Pronos' },
-  leaderboard: { icon: 'award', label: 'Classement' },
-  profile: { icon: 'user', label: 'Profil' },
+const TABS: Record<string, { icon: keyof typeof Ionicons.glyphMap; label: string }> = {
+  home: { icon: 'home', label: 'ACCUEIL' },
+  matches: { icon: 'calendar', label: 'MATCHS' },
+  pronos: { icon: 'ticket', label: 'PRONOS' },
+  leaderboard: { icon: 'trophy', label: 'RANG' },
+  profile: { icon: 'person', label: 'PROFIL' },
 };
 
+// Barre d'onglets BRUTALISTE : arête dure (grosse bordure haute), labels mono, actif rouge.
 export function TabBar({ state, navigation }: TabBarProps) {
   return (
-    <View
-      className="flex-row justify-between border-t border-white/5 px-5 pb-7 pt-3"
-      style={{ backgroundColor: '#101840' }}
-    >
+    <View className="flex-row justify-between border-t-2 border-white bg-tab px-[18px] pb-7 pt-3">
       {state.routes.map((route, index) => {
         const cfg = TABS[route.name];
         if (!cfg) return null;
         const focused = state.index === index;
-        const color = focused ? '#E5342B' : '#9AA4CC';
+        const color = focused ? '#E5342B' : '#6B76A8';
         return (
           <Pressable
             key={route.key}
-            className="w-16 items-center gap-1"
+            className="items-center gap-1.5"
             onPress={() => {
               const event = navigation.emit({
                 type: 'tabPress',
@@ -43,10 +41,8 @@ export function TabBar({ state, navigation }: TabBarProps) {
               if (!focused && !event.defaultPrevented) navigation.navigate(route.name);
             }}
           >
-            <Feather name={cfg.icon} size={24} color={color} />
-            <Text
-              className={`text-[11px] ${focused ? 'font-ui-semibold text-white' : 'font-ui-medium text-muted'}`}
-            >
+            <Ionicons name={cfg.icon} size={22} color={color} />
+            <Text className="font-mono-bold text-[9px]" style={{ color, letterSpacing: 0.5 }}>
               {cfg.label}
             </Text>
           </Pressable>

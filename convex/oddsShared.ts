@@ -1,7 +1,7 @@
 // Moteur de cotes — modèle de Poisson sur les buts attendus (λ) déduits de la force des équipes
 // (points en poule). PUR (aucune dépendance serveur) → importé côté Convex ET côté front
 // (via l'alias @convex) pour garantir des cotes identiques à l'affichage et à la pose du pari.
-const MARGIN = 0.06; // marge maison (garde l'économie de flammes saine)
+const MARGIN = 0.06; // marge maison (garde l'économie de jetons saine)
 const MAXG = 8;
 
 export type Lambdas = [number, number];

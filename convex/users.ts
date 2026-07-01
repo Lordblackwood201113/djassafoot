@@ -1,6 +1,6 @@
 import { mutation, query } from './_generated/server';
 
-const SIGNUP_BONUS = 1000;
+const SIGNUP_BONUS = 500;
 
 // Lit l'utilisateur Convex lié à l'identité Clerk courante (réactif).
 export const current = query({
@@ -51,7 +51,6 @@ export const store = mutation({
       username,
       avatarUrl: identity.pictureUrl,
       flames: SIGNUP_BONUS,
-      points: 0,
       streak: 0,
       createdAt: now,
     });

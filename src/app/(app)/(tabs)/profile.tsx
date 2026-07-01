@@ -2,67 +2,75 @@ import { useAuth } from '@clerk/expo';
 import { Ionicons } from '@expo/vector-icons';
 import { api } from '@convex/_generated/api';
 import { useMutation, useQuery } from 'convex/react';
+import { Image } from 'expo-image';
+import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Image, Pressable, ScrollView, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
 
 import { AppHeader } from '@/components/AppHeader';
+import { BrutalBox } from '@/components/brutal/BrutalBox';
+import { BrutalButton } from '@/components/brutal/BrutalButton';
 import { ScreenBackground } from '@/components/ScreenBackground';
-import { Button } from '@/components/ui/Button';
-import { formatDay, formatTime } from '@/lib/format';
+import { EVENTS, track } from '@/lib/analytics';
+import { formatDay } from '@/lib/format';
 
-const TX_REASONS: Record<
-  string,
-  { label: string; icon: any; color: string }
-> = {
-  signup_bonus: { label: "Bonus d'inscription", icon: 'gift-outline', color: 'text-green' },
-  daily_bonus: { label: 'Bonus quotidien', icon: 'flame-outline', color: 'text-green' },
-  ad_reward: { label: 'Pub récompensée', icon: 'play-circle-outline', color: 'text-green' },
-  referral: { label: 'Parrainage', icon: 'people-outline', color: 'text-green' },
-  prediction_stake: { label: 'Mise prono', icon: 'arrow-forward-outline', color: 'text-muted' },
-  prediction_win: { label: 'Prono gagné', icon: 'trophy-outline', color: 'text-green' },
+const TX_LABEL: Record<string, string> = {
+  signup_bonus: 'BONUS INSCRIPTION',
+  daily_bonus: 'BONUS QUOTIDIEN',
+  ad_reward: 'PUB RÉCOMPENSÉE',
+  referral: 'PARRAINAGE',
+  prediction_stake: 'MISE PRONO',
+  prediction_win: 'PRONO GAGNÉ',
 };
+
+function initials(name?: string) {
+  if (!name) return 'JD';
+  return name
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((w) => w[0])
+    .join('')
+    .toUpperCase();
+}
 
 export default function Profile() {
   const me = useQuery(api.users.current);
   const transactions = useQuery(api.flames.myTransactions);
   const claimBonus = useMutation(api.flames.claimDailyBonus);
   const { signOut } = useAuth();
+  const router = useRouter();
 
   const [claiming, setClaiming] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
-  const [timeLeft, setTimeLeft] = useState<string>('');
+  const [timeLeft, setTimeLeft] = useState('');
 
   useEffect(() => {
-    if (!me?.lastDailyBonusAt) {
-      return;
-    }
+    if (!me?.lastDailyBonusAt) return;
     const target = me.lastDailyBonusAt + 23 * 60 * 60 * 1000;
-
-    const updateTimer = () => {
-      const now = Date.now();
-      const diff = target - now;
-      if (diff <= 0) {
-        setTimeLeft('');
-      } else {
-        const hrs = Math.floor(diff / (3600 * 1000));
-        const mins = Math.floor((diff % (3600 * 1000)) / (60 * 1000));
-        const secs = Math.floor((diff % (60 * 1000)) / 1000);
-        setTimeLeft(
-          `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
-        );
-      }
+    const tick = () => {
+      const diff = target - Date.now();
+      if (diff <= 0) return setTimeLeft('');
+      const h = Math.floor(diff / 3600000);
+      const m = Math.floor((diff % 3600000) / 60000);
+      const s = Math.floor((diff % 60000) / 1000);
+      setTimeLeft(
+        `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`,
+      );
     };
-
-    updateTimer();
-    const interval = setInterval(updateTimer, 1000);
-    return () => clearInterval(interval);
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
   }, [me?.lastDailyBonusAt]);
 
-  const handleClaimDaily = async () => {
+  const currentStreak = me?.streak ?? 0;
+  const isClaimable = !me?.lastDailyBonusAt || !timeLeft;
+
+  const handleClaim = async () => {
     try {
       setClaiming(true);
       setErrorMsg('');
       await claimBonus();
+      track(EVENTS.dailyBonusClaimed, { amount: 20 });
     } catch (e: any) {
       setErrorMsg(e.message || 'Une erreur est survenue');
     } finally {
@@ -70,222 +78,153 @@ export default function Profile() {
     }
   };
 
-  const currentStreak = me?.streak ?? 0;
-  const multiplier = Math.min(currentStreak + 1, 5);
-  const nextClaimAmount = 100 * multiplier;
-  const isClaimable = !me?.lastDailyBonusAt || !timeLeft;
-
   return (
     <ScreenBackground variant="app">
       <View className="flex-1">
         <AppHeader />
         <ScrollView
-          className="flex-1 px-5"
-          contentContainerStyle={{ paddingBottom: 40 }}
+          className="flex-1 px-[18px]"
+          contentContainerStyle={{ paddingBottom: 40, paddingTop: 4, gap: 16 }}
           showsVerticalScrollIndicator={false}
         >
-          {/* Header Profil */}
-          <View className="items-center py-6">
-            <View className="relative">
+          {/* Identité */}
+          <BrutalBox shadow="#E5342B" offset={6} borderWidth={2.5} className="flex-row items-center gap-3.5 bg-surface-3 p-4">
+            <View
+              className="h-[74px] w-[74px] items-center justify-center overflow-hidden border-2 border-white bg-surface-2"
+              style={{ borderRadius: 0 }}
+            >
               {me?.avatarUrl ? (
-                <Image
-                  source={{ uri: me.avatarUrl }}
-                  className="h-20 w-20 rounded-full border-2 border-surface-2"
-                />
+                <Image source={{ uri: me.avatarUrl }} style={{ width: 74, height: 74 }} contentFit="cover" />
               ) : (
-                <Ionicons name="person-circle" size={80} color="#9AA4CC" />
-              )}
-              {currentStreak > 0 && (
-                <View className="absolute -bottom-1 -right-1 flex-row items-center rounded-full bg-red px-2 py-0.5 border border-blue-bottom">
-                  <Ionicons name="flame" size={12} color="#FFFFFF" />
-                  <Text className="ml-0.5 font-display-bold text-[10px] text-white">
-                    {currentStreak}
-                  </Text>
-                </View>
+                <Text className="font-display text-[28px] text-white">{initials(me?.username)}</Text>
               )}
             </View>
-            <Text className="mt-3 font-display-bold text-2xl text-white">
-              {me?.username ?? 'Joueur'}
-            </Text>
-            <Text className="mt-0.5 font-ui text-sm text-muted">
-              {me?.points.toLocaleString('fr-FR') ?? 0} points de classement
-            </Text>
-          </View>
-
-          {/* Solde & Streak */}
-          <View className="flex-row gap-3 mb-6">
-            <View className="flex-1 flex-row items-center gap-3 rounded-2xl bg-surface px-4 py-3.5">
-              <Ionicons name="flame" size={24} color="#E5342B" />
-              <View>
-                <Text className="font-display-bold text-xl text-white">
-                  {me ? me.flames.toLocaleString('fr-FR') : '—'}
-                </Text>
-                <Text className="font-ui text-[11px] text-muted uppercase tracking-wider">
-                  solde flammes
-                </Text>
-              </View>
-            </View>
-            <View className="flex-1 flex-row items-center gap-3 rounded-2xl bg-surface px-4 py-3.5">
-              <Ionicons name="trending-up" size={24} color="#3FCB86" />
-              <View>
-                <Text className="font-display-bold text-xl text-white">
-                  {currentStreak} j.
-                </Text>
-                <Text className="font-ui text-[11px] text-muted uppercase tracking-wider">
-                  série en cours
-                </Text>
-              </View>
-            </View>
-          </View>
-
-          {/* Card Bonus Quotidien */}
-          <View className="rounded-2xl bg-surface p-4 mb-6 border border-white/[0.04]">
-            <View className="flex-row justify-between items-center mb-2">
-              <View className="flex-row items-center gap-2">
-                <Ionicons name="gift-outline" size={20} color="#E5342B" />
-                <Text className="font-display-semibold text-[15px] text-white">
-                  Bonus Quotidien
-                </Text>
-              </View>
-              {currentStreak > 0 && (
-                <Text className="font-ui-semibold text-[11px] text-green">
-                  Série {currentStreak}x
-                </Text>
-              )}
-            </View>
-            <Text className="font-ui text-[13px] text-muted mb-4">
-              {"Récupère ton bonus de flammes toutes les 24h. Ta série augmente tes récompenses (jusqu'à 5x soit 500 🔥)."}
-            </Text>
-
-            {/* Streak visual tracker */}
-            <View className="flex-row gap-1.5 justify-between mb-4">
-              {[1, 2, 3, 4, 5].map((s) => {
-                const isActive = s <= currentStreak;
-                const isNext = s === currentStreak + 1;
-                return (
-                  <View
-                    key={s}
-                    className={`flex-1 items-center py-2 rounded-xl border ${
-                      isActive
-                        ? 'border-green bg-green/10'
-                        : isNext && isClaimable
-                          ? 'border-red bg-red/10'
-                          : 'border-white/[0.05] bg-surface-2'
-                    }`}
-                  >
-                    <Ionicons
-                      name="flame"
-                      size={14}
-                      color={isActive ? '#3FCB86' : isNext && isClaimable ? '#E5342B' : '#6B76A8'}
-                    />
-                    <Text
-                      className={`mt-0.5 font-display-bold text-[10px] ${
-                        isActive ? 'text-green' : isNext && isClaimable ? 'text-red' : 'text-muted'
-                      }`}
-                    >
-                      +{100 * s}
-                    </Text>
-                  </View>
-                );
-              })}
-            </View>
-
-            {errorMsg ? (
-              <Text className="text-red font-ui text-[12px] mb-3 text-center">
-                {errorMsg}
+            <View className="flex-1">
+              <Text className="font-mono-bold text-[10px] text-muted" style={{ letterSpacing: 2 }}>
+                JOUEUR
               </Text>
-            ) : null}
+              <Text numberOfLines={1} className="mt-1 font-display text-[22px] uppercase text-white">
+                {me?.username ?? 'Joueur'}
+              </Text>
+              <Text className="mt-1.5 font-mono text-[10px] text-muted" style={{ letterSpacing: 1 }}>
+                {me?.username ? `@${me.username.toLowerCase().replace(/\s+/g, '')}` : ''}
+              </Text>
+            </View>
+          </BrutalBox>
 
+          {/* Stats */}
+          <View className="flex-row gap-3">
+            <BrutalBox shadow="#E5342B" className="flex-1 gap-1 bg-surface p-3.5">
+              <Text className="font-mono-bold text-[10px] text-muted" style={{ letterSpacing: 1.5 }}>
+                🪙 SOLDE
+              </Text>
+              <Text className="font-display text-[34px] text-white">
+                {me ? me.flames.toLocaleString('fr-FR') : '—'}
+              </Text>
+              <Text className="font-mono text-[10px] text-muted">JETONS</Text>
+            </BrutalBox>
+            <BrutalBox shadow="#3FCB86" className="flex-1 gap-1 bg-surface p-3.5">
+              <Text className="font-mono-bold text-[10px] text-muted" style={{ letterSpacing: 1.5 }}>
+                ↗ SÉRIE
+              </Text>
+              <Text className="font-display text-[34px] text-green">{currentStreak}</Text>
+              <Text className="font-mono text-[10px] text-muted">JOURS</Text>
+            </BrutalBox>
+          </View>
+
+          {/* Bonus quotidien */}
+          <BrutalBox shadow="#E5342B" offset={6} borderWidth={2.5} className="gap-3.5 bg-surface p-4">
+            <View className="flex-row items-center justify-between">
+              <Text className="font-mono-bold text-[12px] text-white" style={{ letterSpacing: 1 }}>
+                BONUS QUOTIDIEN
+              </Text>
+              <Text className="font-mono text-[11px] text-muted">/ 24H</Text>
+            </View>
+            <Text className="font-mono text-[12px] leading-[17px] text-muted">
+              RÉCUPÈRE +20 JETONS TOUTES LES 24H. REVIENS CHAQUE JOUR POUR GARDER TA SÉRIE.
+            </Text>
+            {errorMsg ? (
+              <Text className="font-mono text-[11px] text-red">{errorMsg.toUpperCase()}</Text>
+            ) : null}
             {isClaimable ? (
-              <Pressable
+              <BrutalButton
+                label={claiming ? 'PATIENTE…' : 'RÉCLAMER +20 🪙'}
+                variant="primary"
                 disabled={claiming}
-                onPress={handleClaimDaily}
-                className="bg-red rounded-xl py-3 items-center justify-center flex-row gap-2 active:opacity-90"
-              >
-                {claiming ? (
-                  <ActivityIndicator color="#FFFFFF" size="small" />
-                ) : (
-                  <>
-                    <Ionicons name="sparkles" size={16} color="#FFFFFF" />
-                    <Text className="font-display-bold text-[14px] text-white">
-                      Réclamer mon bonus (+{nextClaimAmount} 🔥)
-                    </Text>
-                  </>
-                )}
-              </Pressable>
+                onPress={handleClaim}
+              />
             ) : (
-              <View className="bg-surface-2 rounded-xl py-3 items-center justify-center flex-row gap-2">
-                <Ionicons name="time-outline" size={16} color="#9AA4CC" />
-                <Text className="font-ui-semibold text-[14px] text-muted">
-                  Disponible dans {timeLeft}
-                </Text>
+              <View
+                className="flex-row items-center justify-center gap-2 border-2 border-white bg-surface-3 py-3.5"
+                style={{ borderRadius: 0 }}
+              >
+                <Ionicons name="time-outline" size={15} color="#9AA4CC" />
+                <Text className="font-mono-bold text-[13px] text-muted">DISPONIBLE DANS {timeLeft}</Text>
               </View>
             )}
-          </View>
+          </BrutalBox>
 
-          {/* Section Historique */}
-          <Text className="font-display-bold text-[16px] text-white mb-3">
-            Historique des transactions
-          </Text>
-
-          {transactions === undefined ? (
-            <ActivityIndicator color="#E5342B" className="my-6" />
-          ) : transactions.length === 0 ? (
-            <View className="items-center py-8 rounded-2xl bg-surface/50 border border-dashed border-white/[0.08]">
-              <Ionicons name="list" size={32} color="#6B76A8" />
-              <Text className="mt-2 font-ui text-sm text-muted">
-                Aucune transaction pour le moment.
+          {/* Historique */}
+          <View>
+            <View className="mb-2 flex-row items-end justify-between">
+              <Text className="font-display text-[16px] text-white" style={{ letterSpacing: 1 }}>
+                HISTORIQUE
+              </Text>
+              <Text className="font-mono text-[10px] text-muted">
+                {transactions ? `${transactions.length} OPÉRATIONS` : '…'}
               </Text>
             </View>
-          ) : (
-            <View className="rounded-2xl bg-surface border border-white/[0.04] overflow-hidden">
-              {transactions.slice(0, 10).map((tx, idx) => {
-                const info = TX_REASONS[tx.reason] || {
-                  label: 'Autre',
-                  icon: 'help-circle-outline',
-                  color: 'text-white',
-                };
-                const isPositive = tx.amount > 0;
+            <View className="h-[2.5px] bg-white" />
+            {transactions === undefined ? (
+              <ActivityIndicator color="#E5342B" className="my-6" />
+            ) : transactions.length === 0 ? (
+              <Text className="py-6 text-center font-mono text-[12px] text-muted">
+                AUCUNE OPÉRATION.
+              </Text>
+            ) : (
+              transactions.slice(0, 12).map((tx, i) => {
+                const pos = tx.amount > 0;
+                // Les lignes de pari (mise / gain) ouvrent le pari concerné via son refId.
+                const betId =
+                  (tx.reason === 'prediction_stake' || tx.reason === 'prediction_win') && tx.refId
+                    ? tx.refId
+                    : undefined;
                 return (
-                  <View
+                  <Pressable
                     key={tx._id}
-                    className={`flex-row items-center justify-between px-4 py-3.5 ${
-                      idx > 0 ? 'border-t border-white/[0.04]' : ''
-                    }`}
+                    onPress={betId ? () => router.push(`/bet/${betId}`) : undefined}
+                    className="flex-row items-center justify-between py-3"
+                    style={i > 0 ? { borderTopWidth: 1.5, borderColor: 'rgba(255,255,255,0.10)' } : undefined}
                   >
-                    <View className="flex-row items-center gap-3">
-                      <View className="h-9 w-9 items-center justify-center rounded-xl bg-surface-2">
-                        <Ionicons name={info.icon} size={18} color={isPositive ? '#3FCB86' : '#9AA4CC'} />
-                      </View>
+                    <View className="flex-row items-center gap-2.5">
+                      <View
+                        style={{ width: 9, height: 9, borderRadius: 0, backgroundColor: pos ? '#3FCB86' : '#6B76A8' }}
+                      />
                       <View>
-                        <Text className="font-ui-semibold text-[13px] text-white">
-                          {info.label}
+                        <Text className="font-mono-bold text-[12px] text-white">
+                          {TX_LABEL[tx.reason] ?? 'AUTRE'}
                         </Text>
-                        <Text className="font-ui text-[11px] text-muted mt-0.5">
-                          {formatDay(tx.createdAt)} à {formatTime(tx.createdAt)}
+                        <Text className="font-mono text-[10px] text-muted">
+                          {formatDay(tx.createdAt).toUpperCase()}
                         </Text>
                       </View>
                     </View>
-                    <Text
-                      className={`font-display-bold text-[14px] ${
-                        isPositive ? 'text-green' : 'text-white'
-                      }`}
-                    >
-                      {isPositive ? `+${tx.amount}` : tx.amount} 🔥
-                    </Text>
-                  </View>
+                    <View className="flex-row items-center gap-2">
+                      <Text className="font-mono-bold text-[13px]" style={{ color: pos ? '#3FCB86' : '#FFFFFF' }}>
+                        {pos ? '+' : ''}
+                        {tx.amount} 🪙
+                      </Text>
+                      {betId ? <Ionicons name="chevron-forward" size={14} color="#6B76A8" /> : null}
+                    </View>
+                  </Pressable>
                 );
-              })}
-            </View>
-          )}
+              })
+            )}
+          </View>
 
           {/* Déconnexion */}
-          <View className="mt-8">
-            <Button
-              label="Se déconnecter"
-              variant="secondary"
-              onPress={() => signOut()}
-            />
+          <View className="mt-2">
+            <BrutalButton label="SE DÉCONNECTER" variant="ghost" onPress={() => signOut()} />
           </View>
         </ScrollView>
       </View>

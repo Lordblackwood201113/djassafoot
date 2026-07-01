@@ -3,12 +3,24 @@ import { api } from '@convex/_generated/api';
 import type { Id } from '@convex/_generated/dataModel';
 import { useMutation, useQuery } from 'convex/react';
 import { useState } from 'react';
-import { ActivityIndicator, Image, Pressable, ScrollView, Text, View } from 'react-native';
+import { ActivityIndicator, Image, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 
 import { AppHeader } from '@/components/AppHeader';
 import { ScreenBackground } from '@/components/ScreenBackground';
-import { Button } from '@/components/ui/Button';
-import { TextField } from '@/components/ui/TextField';
+import { BrutalBox } from '@/components/brutal/BrutalBox';
+import { BrutalButton } from '@/components/brutal/BrutalButton';
+import { BrutalSegment } from '@/components/brutal/Segment';
+import { LeaguesTab } from '@/components/leagues/LeaguesTab';
+import { EVENTS, track } from '@/lib/analytics';
+import { hardShadow } from '@/lib/brutal';
+
+// Initiales majuscules pour l'avatar de repli (max 2 lettres).
+function initials(name?: string | null) {
+  if (!name) return '?';
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  const chars = parts.length >= 2 ? parts[0][0] + parts[1][0] : name.trim().slice(0, 2);
+  return chars.toUpperCase();
+}
 
 export default function Leaderboard() {
   const me = useQuery(api.users.current);
@@ -20,7 +32,7 @@ export default function Leaderboard() {
   const acceptRequest = useMutation(api.friends.acceptRequest);
   const declineOrRemove = useMutation(api.friends.declineOrRemove);
 
-  const [tab, setTab] = useState<'global' | 'friends' | 'requests'>('global');
+  const [tab, setTab] = useState<'global' | 'friends' | 'leagues' | 'requests'>('global');
   const [showSearch, setShowSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [loadingActionId, setLoadingActionId] = useState<string | null>(null);
@@ -32,11 +44,12 @@ export default function Leaderboard() {
     searchQuery.trim().length >= 2 ? { queryText: searchQuery.trim() } : 'skip',
   );
 
-  const getRankStyle = (index: number) => {
-    if (index === 0) return { bg: 'bg-[#FFD700]/10 border border-[#FFD700]/30', text: 'text-[#FFD700]', emoji: '🥇' };
-    if (index === 1) return { bg: 'bg-[#C0C0C0]/10 border border-[#C0C0C0]/30', text: 'text-[#C0C0C0]', emoji: '🥈' };
-    if (index === 2) return { bg: 'bg-[#CD7F32]/10 border border-[#CD7F32]/30', text: 'text-[#CD7F32]', emoji: '🥉' };
-    return { bg: 'bg-surface-2 border border-white/[0.04]', text: 'text-muted', emoji: null };
+  // Couleur du numéro de rang (or / argent / bronze pour le podium).
+  const rankColor = (index: number) => {
+    if (index === 0) return '#FFD24A';
+    if (index === 1) return '#C0C0C0';
+    if (index === 2) return '#CD7F32';
+    return '#9AA4CC';
   };
 
   const handleAddFriend = async (friendId: Id<'users'>) => {
@@ -44,6 +57,7 @@ export default function Leaderboard() {
       setLoadingActionId(friendId);
       setActionError('');
       await sendRequest({ friendId });
+      track(EVENTS.friendAdded, { friendId });
     } catch (err: any) {
       setActionError(err.message || 'Erreur lors de l\'envoi de la demande');
     } finally {
@@ -56,6 +70,7 @@ export default function Leaderboard() {
       setLoadingActionId(relId);
       setActionError('');
       await acceptRequest({ relationshipId: relId });
+      track(EVENTS.friendRequestAccepted, { relationshipId: relId });
     } catch (err: any) {
       setActionError(err.message || 'Erreur lors de l\'acceptation');
     } finally {
@@ -85,29 +100,34 @@ export default function Leaderboard() {
         
         {/* Toggle Recherche */}
         {showSearch ? (
-          <View className="px-5 pt-1 pb-4 gap-3 border-b border-white/[0.06]">
-            <View className="flex-row items-center gap-2">
+          <View className="px-5 pt-1 pb-4 gap-3 border-b-2 border-white">
+            <View className="flex-row items-center gap-2.5">
               <Pressable
                 onPress={() => {
                   setShowSearch(false);
                   setSearchQuery('');
                   setActionError('');
                 }}
-                className="h-9 w-9 items-center justify-center rounded-xl bg-surface"
+                className="h-9 w-9 items-center justify-center border-2 border-white bg-surface-3"
+                style={{ borderRadius: 0 }}
               >
                 <Ionicons name="arrow-back" size={20} color="#FFFFFF" />
               </Pressable>
-              <Text className="font-display-semibold text-base text-white">{"Ajouter des amis"}</Text>
+              <View className="h-2.5 w-2.5 bg-red" />
+              <Text className="font-display text-base text-white uppercase">{"AJOUTER DES AMIS"}</Text>
             </View>
-            <TextField
-              placeholder="Rechercher par nom d'utilisateur (ex: Daniel)..."
+            <TextInput
+              placeholder="RECHERCHER UN PSEUDO (EX: DANIEL)..."
+              placeholderTextColor="#9AA4CC"
               value={searchQuery}
               onChangeText={setSearchQuery}
               autoFocus
               autoCapitalize="none"
+              className="w-full border-2 border-white bg-surface-3 px-4 py-3 font-mono text-[13px] text-white"
+              style={{ borderRadius: 0 }}
             />
             {actionError ? (
-              <Text className="text-red font-ui text-[12px]">{actionError}</Text>
+              <Text className="text-red font-mono-bold text-[11px] uppercase">{actionError}</Text>
             ) : null}
 
             {/* Résultats de recherche */}
@@ -124,56 +144,72 @@ export default function Leaderboard() {
                 </Text>
               ) : (
                 searchResults.map((user) => (
-                  <View key={user._id} className="flex-row items-center justify-between py-2.5 border-b border-white/[0.04]">
-                    <View className="flex-row items-center gap-3">
-                      {user.avatarUrl ? (
-                        <Image source={{ uri: user.avatarUrl }} className="h-9 w-9 rounded-full" />
-                      ) : (
-                        <Ionicons name="person-circle" size={36} color="#9AA4CC" />
-                      )}
-                      <View>
-                        <Text className="font-ui-semibold text-[14px] text-white">{user.username}</Text>
-                        <Text className="font-ui text-[11px] text-muted">{`${user.points} pts`}</Text>
+                  <View
+                    key={user._id}
+                    className="mb-2 flex-row items-center justify-between border-2 border-white bg-surface-3 px-3 py-2.5"
+                    style={{ borderRadius: 0 }}
+                  >
+                    <View className="flex-1 flex-row items-center gap-2.5">
+                      <View
+                        className="h-9 w-9 items-center justify-center overflow-hidden border-2 border-white bg-surface-2"
+                        style={{ borderRadius: 0 }}
+                      >
+                        {user.avatarUrl ? (
+                          <Image source={{ uri: user.avatarUrl }} style={{ width: 36, height: 36 }} />
+                        ) : (
+                          <Text className="font-display text-[12px] text-white">{initials(user.username)}</Text>
+                        )}
+                      </View>
+                      <View className="flex-1">
+                        <Text numberOfLines={1} className="font-mono-bold text-[13px] text-white">
+                          {user.username.toUpperCase()}
+                        </Text>
+                        <Text className="font-mono text-[10px] text-muted">
+                          {user.flames.toLocaleString('fr-FR')} 🪙
+                        </Text>
                       </View>
                     </View>
 
                     {/* Actions d'amitié */}
-                    <View className="flex-row items-center">
+                    <View className="flex-row items-center gap-1.5">
                       {user.relationship === 'none' && (
                         <Pressable
                           disabled={loadingActionId !== null}
                           onPress={() => handleAddFriend(user._id)}
-                          className="bg-red px-3 py-1.5 rounded-xl active:opacity-80"
+                          className="bg-red px-3 py-1.5"
+                          style={{ borderRadius: 0 }}
                         >
                           {loadingActionId === user._id ? (
                             <ActivityIndicator size="small" color="#FFFFFF" />
                           ) : (
-                            <Text className="font-ui-bold text-xs text-white">{"Ajouter"}</Text>
+                            <Text className="font-mono-bold text-[10px] text-white">AJOUTER</Text>
                           )}
                         </Pressable>
                       )}
                       {user.relationship === 'pending_sent' && (
-                        <View className="bg-surface-2 px-3 py-1.5 rounded-xl border border-white/5">
-                          <Text className="font-ui-semibold text-xs text-muted">{"Invité"}</Text>
+                        <View className="border-2 border-white bg-surface-2 px-3 py-1.5" style={{ borderRadius: 0 }}>
+                          <Text className="font-mono-bold text-[10px] text-muted">INVITÉ</Text>
                         </View>
                       )}
                       {user.relationship === 'pending_received' && user.relationshipId && (
-                        <View className="flex-row gap-1.5">
+                        <>
                           <Pressable
                             disabled={loadingActionId !== null}
                             onPress={() => handleAcceptRequest(user.relationshipId!)}
-                            className="bg-green px-2.5 py-1.5 rounded-xl"
+                            className="bg-green px-2.5 py-1.5"
+                            style={{ borderRadius: 0 }}
                           >
                             {loadingActionId === user.relationshipId ? (
-                              <ActivityIndicator size="small" color="#FFFFFF" />
+                              <ActivityIndicator size="small" color="#0A1230" />
                             ) : (
-                              <Ionicons name="checkmark" size={14} color="#FFFFFF" />
+                              <Ionicons name="checkmark" size={14} color="#0A1230" />
                             )}
                           </Pressable>
                           <Pressable
                             disabled={loadingActionId !== null}
                             onPress={() => handleDeclineRequest(user.relationshipId!)}
-                            className="bg-white/10 px-2.5 py-1.5 rounded-xl border border-white/10"
+                            className="border-2 border-white bg-ink px-2.5 py-1.5"
+                            style={{ borderRadius: 0 }}
                           >
                             {loadingActionId === user.relationshipId ? (
                               <ActivityIndicator size="small" color="#FFFFFF" />
@@ -181,20 +217,12 @@ export default function Leaderboard() {
                               <Ionicons name="close" size={14} color="#FFFFFF" />
                             )}
                           </Pressable>
-                        </View>
+                        </>
                       )}
                       {user.relationship === 'accepted' && user.relationshipId && (
-                        <Pressable
-                          disabled={loadingActionId !== null}
-                          onPress={() => handleDeclineRequest(user.relationshipId!)}
-                          className="bg-white/5 border border-white/10 px-3 py-1.5 rounded-xl active:bg-red/10"
-                        >
-                          {loadingActionId === user.relationshipId ? (
-                            <ActivityIndicator size="small" color="#FFFFFF" />
-                          ) : (
-                            <Text className="font-ui-medium text-xs text-white/80">{"Ami"}</Text>
-                          )}
-                        </Pressable>
+                        <View className="border-2 border-green bg-ink px-3 py-1.5" style={{ borderRadius: 0 }}>
+                          <Text className="font-mono-bold text-[10px] text-green">AMI</Text>
+                        </View>
                       )}
                     </View>
                   </View>
@@ -203,22 +231,28 @@ export default function Leaderboard() {
             </ScrollView>
           </View>
         ) : (
-          /* En-tête standard avec bouton ajouter ami */
-          <View className="flex-row justify-between items-center px-5 pb-2">
-            <Text className="font-display-bold text-xl text-white">{"Classements"}</Text>
+          /* En-tête : titre + bouton recherche */
+          <View className="flex-row items-center justify-between px-[18px] pb-2 pt-1">
+            <View className="flex-row items-center gap-2">
+              <View className="h-2.5 w-2.5 bg-red" />
+              <Text className="font-display text-[22px] uppercase text-white">CLASSEMENT</Text>
+            </View>
             <Pressable
               onPress={() => setShowSearch(true)}
-              className="h-9 w-9 items-center justify-center rounded-2xl bg-surface border border-white/[0.06] active:scale-95"
+              className="h-9 w-9 items-center justify-center border-2 border-white bg-surface-3"
+              style={{ borderRadius: 0 }}
             >
-              <Ionicons name="person-add" size={18} color="#FFFFFF" />
+              <Ionicons name="person-add" size={17} color="#FFFFFF" />
             </Pressable>
           </View>
         )}
 
-        {/* Onglets */}
-        <View className="mx-5 my-3 flex-row gap-1 rounded-2xl bg-surface p-1.5">
-          {(['global', 'friends', 'requests'] as const).map((t) => {
+        {/* Onglets brutalistes */}
+        <View className="mx-[18px] my-3 flex-row border-2 border-white" style={{ borderRadius: 0 }}>
+          {(['global', 'friends', 'leagues', 'requests'] as const).map((t, i) => {
             const isSelected = tab === t;
+            const label =
+              t === 'global' ? 'GLOBAL' : t === 'friends' ? 'AMIS' : t === 'leagues' ? 'LIGUES' : 'DEMANDES';
             return (
               <Pressable
                 key={t}
@@ -226,22 +260,19 @@ export default function Leaderboard() {
                   setTab(t);
                   setActionError('');
                 }}
-                className={`flex-1 items-center rounded-xl py-2 flex-row justify-center gap-1.5 ${
-                  isSelected ? 'bg-red' : ''
+                className={`flex-1 flex-row items-center justify-center gap-1 py-2.5 ${
+                  isSelected ? 'bg-red' : 'bg-ink'
                 }`}
+                style={i < 3 ? { borderRightWidth: 2, borderColor: '#FFFFFF' } : undefined}
               >
                 <Text
-                  className={`text-[13px] ${
-                    isSelected ? 'font-ui-bold text-white' : 'font-ui-medium text-muted'
-                  }`}
+                  className={`font-mono-bold text-[11px] ${isSelected ? 'text-white' : 'text-muted'}`}
                 >
-                  {t === 'global' ? 'Global' : t === 'friends' ? 'Amis' : 'Demandes'}
+                  {label}
                 </Text>
                 {t === 'requests' && showPendingBadge && (
-                  <View className="bg-white h-4 px-1 rounded-full items-center justify-center min-w-4">
-                    <Text className="font-display-bold text-[9px] text-red">
-                      {pendingRequests.length}
-                    </Text>
+                  <View className="h-4 min-w-4 items-center justify-center bg-white px-1" style={{ borderRadius: 0 }}>
+                    <Text className="font-mono-bold text-[9px] text-red">{pendingRequests.length}</Text>
                   </View>
                 )}
               </Pressable>
@@ -250,7 +281,9 @@ export default function Leaderboard() {
         </View>
 
         {/* Contenu principal */}
-        {tab === 'requests' ? (
+        {tab === 'leagues' ? (
+          <LeaguesTab />
+        ) : tab === 'requests' ? (
           /* Onglet Demandes Reçues */
           pendingRequests === undefined ? (
             <ActivityIndicator color="#E5342B" className="my-16" />
@@ -270,45 +303,54 @@ export default function Leaderboard() {
                 <Text className="text-red font-ui text-[12px] mb-2">{actionError}</Text>
               ) : null}
               {pendingRequests.map((req) => (
-                <View key={req.relationshipId} className="flex-row items-center justify-between bg-surface p-4 rounded-2xl border border-white/[0.04]">
-                  <View className="flex-row items-center gap-3">
-                    {req.avatarUrl ? (
-                      <Image source={{ uri: req.avatarUrl }} className="h-10 w-10 rounded-full" />
-                    ) : (
-                      <Ionicons name="person-circle" size={40} color="#9AA4CC" />
-                    )}
-                    <View>
-                      <Text className="font-ui-bold text-[14px] text-white">{req.username}</Text>
-                      <Text className="font-ui text-[12px] text-muted">{`${req.points} pts`}</Text>
+                <View
+                  key={req.relationshipId}
+                  className="flex-row items-center justify-between border-2 border-white bg-surface-3 p-3"
+                  style={{ borderRadius: 0 }}
+                >
+                  <View className="flex-1 flex-row items-center gap-2.5">
+                    <View
+                      className="h-10 w-10 items-center justify-center overflow-hidden border-2 border-white bg-surface-2"
+                      style={{ borderRadius: 0 }}
+                    >
+                      {req.avatarUrl ? (
+                        <Image source={{ uri: req.avatarUrl }} style={{ width: 40, height: 40 }} />
+                      ) : (
+                        <Text className="font-display text-[13px] text-white">{initials(req.username)}</Text>
+                      )}
+                    </View>
+                    <View className="flex-1">
+                      <Text numberOfLines={1} className="font-mono-bold text-[13px] text-white">
+                        {req.username.toUpperCase()}
+                      </Text>
+                      <Text className="font-mono text-[10px] text-muted">
+                        {req.flames.toLocaleString('fr-FR')} 🪙
+                      </Text>
                     </View>
                   </View>
-                  <View className="flex-row gap-2">
+                  <View className="flex-row gap-1.5">
                     <Pressable
                       disabled={loadingActionId !== null}
                       onPress={() => handleAcceptRequest(req.relationshipId)}
-                      className="bg-green px-4 py-2 rounded-xl flex-row items-center gap-1 active:opacity-90"
+                      className="flex-row items-center gap-1 bg-green px-3 py-2"
+                      style={{ borderRadius: 0 }}
                     >
                       {loadingActionId === req.relationshipId ? (
-                        <ActivityIndicator size="small" color="#FFFFFF" />
+                        <ActivityIndicator size="small" color="#0A1230" />
                       ) : (
-                        <>
-                          <Ionicons name="checkmark-circle-outline" size={16} color="#FFFFFF" />
-                          <Text className="font-ui-bold text-xs text-white">{"Accepter"}</Text>
-                        </>
+                        <Text className="font-mono-bold text-[10px] text-ink">ACCEPTER</Text>
                       )}
                     </Pressable>
                     <Pressable
                       disabled={loadingActionId !== null}
                       onPress={() => handleDeclineRequest(req.relationshipId)}
-                      className="bg-white/5 border border-white/10 px-4 py-2 rounded-xl flex-row items-center gap-1 active:opacity-90"
+                      className="border-2 border-white bg-ink px-2.5 py-2"
+                      style={{ borderRadius: 0 }}
                     >
                       {loadingActionId === req.relationshipId ? (
                         <ActivityIndicator size="small" color="#FFFFFF" />
                       ) : (
-                        <>
-                          <Ionicons name="close-circle-outline" size={16} color="#FFFFFF" />
-                          <Text className="font-ui-medium text-xs text-white/80">{"Refuser"}</Text>
-                        </>
+                        <Ionicons name="close" size={16} color="#FFFFFF" />
                       )}
                     </Pressable>
                   </View>
@@ -328,12 +370,17 @@ export default function Leaderboard() {
               </Text>
               <Text className="mt-1 text-center font-ui text-sm text-muted">
                 {tab === 'global'
-                  ? "Les premiers points arrivent bientôt."
+                  ? "Le classement se remplira au fil des pronos."
                   : "Ajoute tes amis pour comparer vos pronos !"}
               </Text>
               {tab === 'friends' && (
-                <View className="mt-4 w-36">
-                  <Button label="Ajouter un ami" onPress={() => setShowSearch(true)} />
+                <View className="mt-4">
+                  <BrutalButton
+                    label="AJOUTER UN AMI"
+                    variant="primary"
+                    full={false}
+                    onPress={() => setShowSearch(true)}
+                  />
                 </View>
               )}
             </View>
@@ -344,43 +391,42 @@ export default function Leaderboard() {
             >
               {currentLeaderboard.map((item, idx) => {
                 const isMe = me?._id === item._id;
-                const rStyle = getRankStyle(idx);
+                const col = isMe ? '#E5342B' : rankColor(idx);
                 return (
                   <View
                     key={item._id}
-                    className={`flex-row items-center justify-between p-3.5 rounded-2xl bg-surface ${
-                      isMe ? 'border-2 border-red bg-surface-2' : 'border border-white/[0.04]'
-                    }`}
+                    className="flex-row items-center gap-3 border-2 bg-surface-3 px-3.5 py-3"
+                    style={{ borderRadius: 0, borderColor: isMe ? '#E5342B' : '#FFFFFF' }}
                   >
-                    <View className="flex-row items-center gap-3">
-                      {/* Badge de Rang */}
-                      <View className={`h-8 w-8 items-center justify-center rounded-full ${rStyle.bg}`}>
-                        {rStyle.emoji ? (
-                          <Text className="text-[14px]">{rStyle.emoji}</Text>
-                        ) : (
-                          <Text className={`font-display-bold text-xs ${rStyle.text}`}>{idx + 1}</Text>
-                        )}
-                      </View>
-
-                      {/* Photo/Avatar + Nom */}
+                    <Text
+                      className="font-display text-[18px]"
+                      style={{ color: col, width: 24, textAlign: 'center' }}
+                    >
+                      {idx + 1}
+                    </Text>
+                    <View
+                      className="items-center justify-center overflow-hidden border-2 bg-surface-2"
+                      style={{ width: 40, height: 40, borderRadius: 0, borderColor: col }}
+                    >
                       {item.avatarUrl ? (
-                        <Image source={{ uri: item.avatarUrl }} className="h-9 w-9 rounded-full" />
+                        <Image source={{ uri: item.avatarUrl }} style={{ width: 40, height: 40 }} />
                       ) : (
-                        <Ionicons name="person-circle" size={36} color="#9AA4CC" />
+                        <Text className="font-display text-[13px] text-white">
+                          {initials(item.username)}
+                        </Text>
                       )}
-                      <View>
-                        <Text className={`font-ui-semibold text-[14px] ${isMe ? 'text-white font-ui-bold' : 'text-white'}`}>
-                          {item.username}
-                          {isMe ? ' (toi)' : ''}
-                        </Text>
-                        <Text className="font-ui text-[11px] text-muted mt-0.5">
-                          {`${item.streak} j. de série 🔥`}
-                        </Text>
-                      </View>
                     </View>
-
-                    <Text className={`font-display-bold text-[14px] ${isMe ? 'text-red text-[15px]' : 'text-white'}`}>
-                      {item.points.toLocaleString('fr-FR')} pts
+                    <View className="flex-1">
+                      <Text numberOfLines={1} className="font-mono-bold text-[13px] text-white">
+                        {item.username.toUpperCase()}
+                        {isMe ? ' · TOI' : ''}
+                      </Text>
+                      <Text className="font-mono text-[10px] text-muted">
+                        {item.streak} J. DE SÉRIE
+                      </Text>
+                    </View>
+                    <Text className="font-mono-bold text-[12px]" style={{ color: col }}>
+                      {item.flames.toLocaleString('fr-FR')} 🪙
                     </Text>
                   </View>
                 );

@@ -1,13 +1,15 @@
 import { useSignIn } from '@clerk/expo/legacy';
 import { Link, useRouter } from 'expo-router';
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, Text } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, Text, View } from 'react-native';
 
 import { ScreenBackground } from '@/components/ScreenBackground';
 import { SocialAuth } from '@/components/auth/SocialAuth';
-import { Button } from '@/components/ui/Button';
+import { BrutalButton } from '@/components/brutal/BrutalButton';
 import { Divider } from '@/components/ui/Divider';
 import { TextField } from '@/components/ui/TextField';
+import { EVENTS, track } from '@/lib/analytics';
+import { postAuthHref } from '@/store/pendingLeagueStore';
 
 export default function SignIn() {
   const { isLoaded, signIn, setActive } = useSignIn();
@@ -25,7 +27,8 @@ export default function SignIn() {
       const res = await signIn.create({ identifier: email, password });
       if (res.status === 'complete') {
         await setActive({ session: res.createdSessionId });
-        router.replace('/home');
+        track(EVENTS.userSignedIn, { method: 'email' });
+        router.replace(postAuthHref() as never);
       } else {
         setError('Connexion incomplète.');
       }
@@ -53,7 +56,11 @@ export default function SignIn() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          <Text className="font-display text-3xl text-white">Se connecter</Text>
+          {/* En-tête brutaliste */}
+          <View className="flex-row items-center gap-2.5">
+            <View className="h-3.5 w-3.5 bg-red" />
+            <Text className="font-display text-3xl uppercase text-white">Se connecter</Text>
+          </View>
 
           <TextField
             label="E-mail"
@@ -71,15 +78,19 @@ export default function SignIn() {
             placeholder="••••••••"
           />
 
-          {error ? <Text className="font-ui text-sm text-red">{error}</Text> : null}
+          {error ? (
+            <Text className="font-mono-bold text-[12px] uppercase text-red">{error}</Text>
+          ) : null}
 
-          <Button label="Connexion" onPress={onSignIn} loading={loading} />
+          <BrutalButton label="Connexion" variant="primary" onPress={onSignIn} loading={loading} />
 
           <Divider />
           <SocialAuth />
 
-          <Link href="/sign-up" className="text-center font-ui text-sm text-muted">
-            Pas de compte ? Créer un compte
+          <Link href="/sign-up" className="text-center">
+            <Text className="font-mono text-[12px] uppercase text-muted">
+              Pas de compte ? <Text className="font-mono-bold text-red">Créer un compte</Text>
+            </Text>
           </Link>
         </ScrollView>
       </KeyboardAvoidingView>

@@ -1,6 +1,6 @@
 import { v } from 'convex/values';
 
-import { internal } from './_generated/api';
+import { api, internal } from './_generated/api';
 import { internalAction, internalMutation } from './_generated/server';
 
 // FIFA World Cup 2026 sur TheSportsDB (v2, header X-API-KEY).
@@ -15,7 +15,8 @@ const headers = () => ({
 
 function mapStatus(s: any): 'scheduled' | 'live' | 'finished' {
   const x = String(s ?? '').toUpperCase();
-  if (['FT', 'AET', 'PEN', 'AWD', 'WO'].includes(x)) return 'finished';
+  // 'AP' = After Penalties (match décidé aux tirs au but) — sinon il restait « scheduled ».
+  if (['FT', 'AET', 'AP', 'PEN', 'AWD', 'WO'].includes(x)) return 'finished';
   if (['1H', 'HT', '2H', 'ET', 'BT', 'P', 'LIVE'].includes(x)) return 'live';
   return 'scheduled';
 }
@@ -167,6 +168,90 @@ export const syncFixtures = internalAction({
       await ctx.runMutation(internal.settlement.settleMatch, { matchId });
     }
     return count;
+  },
+});
+
+// Tirs au but (phase finale). TheSportsDB ne fournit pas de score de séance → on l'obtient
+// d'API-Football (`score.penalty`) via l'idAPIfootball du match. Seulement pour les matchs à
+// élimination TERMINÉS sur un score de parité et pas encore enrichis (donc très peu d'appels).
+const KO_ROUNDS = ['32', '16', '125', '150', '200'];
+
+export const setKnockoutResult = internalMutation({
+  args: {
+    matchId: v.id('matches'),
+    winner: v.optional(v.union(v.literal('home'), v.literal('away'))),
+    homePenalty: v.optional(v.number()),
+    awayPenalty: v.optional(v.number()),
+  },
+  handler: async (ctx, { matchId, winner, homePenalty, awayPenalty }) => {
+    const patch: Record<string, unknown> = { updatedAt: Date.now() };
+    if (winner) patch.winner = winner;
+    if (homePenalty != null) patch.homePenalty = homePenalty;
+    if (awayPenalty != null) patch.awayPenalty = awayPenalty;
+    await ctx.db.patch(matchId, patch);
+  },
+});
+
+export const enrichPenalties = internalAction({
+  args: {},
+  handler: async (ctx): Promise<{ checked: number; filled: number }> => {
+    const afKey = process.env.API_FOOTBALL_KEY;
+    if (!process.env.THESPORTSDB_KEY || !afKey) return { checked: 0, filled: 0 };
+
+    const all = await ctx.runQuery(api.matches.list);
+    // Matchs à élimination terminés sur un score de parité (donc décidés en prolongation/t.a.b.),
+    // dont on n'a pas encore le vainqueur ni le score des tirs au but.
+    const pending = all.filter(
+      (m) =>
+        KO_ROUNDS.includes(m.round ?? '') &&
+        m.status === 'finished' &&
+        m.homeScore != null &&
+        m.awayScore != null &&
+        m.homeScore === m.awayScore &&
+        (m.winner == null || m.homePenalty == null),
+    );
+
+    let filled = 0;
+    for (const m of pending) {
+      try {
+        // 1) idAPIfootball via le détail TheSportsDB (absent du calendrier).
+        const evRes = await fetch(`${BASE}/lookup/event/${m.apiId}`, { headers: headers() });
+        if (!evRes.ok) continue;
+        const evJson: any = await evRes.json();
+        const idAF = (evJson.lookup ?? evJson.events ?? [])[0]?.idAPIfootball;
+        if (!idAF) continue;
+
+        // 2) vainqueur + score.penalty via API-Football (fixture ciblée → OK en gratuit).
+        const afRes = await fetch(`https://v3.football.api-sports.io/fixtures?id=${idAF}`, {
+          headers: { 'x-apisports-key': afKey },
+        });
+        if (!afRes.ok) continue;
+        const f: any = ((await afRes.json())?.response ?? [])[0];
+        if (!f) continue;
+
+        const winner: 'home' | 'away' | undefined = f.teams?.home?.winner
+          ? 'home'
+          : f.teams?.away?.winner
+            ? 'away'
+            : undefined;
+        const pen = f.score?.penalty;
+        const homePenalty = typeof pen?.home === 'number' ? pen.home : undefined;
+        const awayPenalty = typeof pen?.away === 'number' ? pen.away : undefined;
+
+        if (winner || homePenalty != null) {
+          await ctx.runMutation(internal.football.setKnockoutResult, {
+            matchId: m._id,
+            winner,
+            homePenalty,
+            awayPenalty,
+          });
+          filled++;
+        }
+      } catch {
+        // on retentera au prochain cron
+      }
+    }
+    return { checked: pending.length, filled };
   },
 });
 

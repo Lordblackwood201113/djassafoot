@@ -13,7 +13,14 @@ module.exports = {
         muted: '#9AA4CC', // texte secondaire
         surface: '#1B2658', // cartes
         'surface-2': '#232F66', // cartes secondaires / badges
-        green: '#3FCB86', // gains / validation (dégradé « Prono Result »)
+        green: '#3FCB86', // gains / validation
+        // Surfaces brutalistes
+        'surface-3': '#131C3F', // blocs (plus foncé que surface)
+        tab: '#0E1640', // barre d'onglets
+        // Podium classement
+        gold: '#FFD24A',
+        silver: '#C0C0C0',
+        bronze: '#CD7F32',
         // Dégradé de fond (vertical) : bottom → mid → top
         'blue-bottom': '#0A1230',
         'blue-mid': '#16215C',
@@ -28,6 +35,9 @@ module.exports = {
         'ui-medium': ['Inter_500Medium'],
         'ui-semibold': ['Inter_600SemiBold'],
         'ui-bold': ['Inter_700Bold'],
+        // font-mono = Space Mono (labels/données brutalistes)
+        mono: ['SpaceMono_400Regular'],
+        'mono-bold': ['SpaceMono_700Bold'],
       },
     },
   },

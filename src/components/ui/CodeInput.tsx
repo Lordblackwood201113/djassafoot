@@ -26,10 +26,10 @@ export function CodeInput({ value, onChangeText, length = 6, onComplete }: Props
         return (
           <View
             key={i}
-            className={`h-[58px] flex-1 items-center justify-center rounded-2xl ${
-              char ? 'bg-surface' : 'bg-[#141E4E]'
+            className={`h-[58px] flex-1 items-center justify-center ${
+              char ? 'bg-surface-3' : 'bg-ink'
             }`}
-            style={{ borderWidth: active ? 2 : 1, borderColor: active ? '#E5342B' : '#2A3766' }}
+            style={{ borderRadius: 0, borderWidth: 2, borderColor: active ? '#E5342B' : '#FFFFFF' }}
           >
             <Text className="font-display text-2xl text-white">{char}</Text>
           </View>

@@ -8,13 +8,16 @@ export default defineSchema({
     username: v.string(),
     avatarUrl: v.optional(v.string()),
     flames: v.number(),
-    points: v.number(),
+    // `points` (ancien score de classement) est retiré : le classement se fait
+    // désormais au solde de jetons (`flames`). Champ laissé optionnel le temps
+    // de la migration (migrations:stripPoints), puis supprimable définitivement.
+    points: v.optional(v.number()),
     streak: v.number(),
     lastDailyBonusAt: v.optional(v.number()),
     createdAt: v.number(),
   })
     .index('by_token', ['tokenIdentifier'])
-    .index('by_points', ['points'])
+    .index('by_flames', ['flames'])
     .index('by_username', ['username']),
 
   flameTransactions: defineTable({
@@ -74,6 +77,12 @@ export default defineSchema({
     ),
     homeScore: v.optional(v.number()),
     awayScore: v.optional(v.number()),
+    // Tirs au but (phase finale) — source API-Football, remplis seulement si séance de tirs.
+    homePenalty: v.optional(v.number()),
+    awayPenalty: v.optional(v.number()),
+    // Vainqueur d'un match à élimination (source API-Football) — sert à griser le perdant
+    // même quand le score réglementaire est nul (tirs au but / prolongation).
+    winner: v.optional(v.union(v.literal('home'), v.literal('away'))),
     minute: v.optional(v.number()),
     updatedAt: v.number(),
   })
@@ -117,6 +126,7 @@ export default defineSchema({
   })
     .index('by_user', ['userId'])
     .index('by_match', ['matchId'])
+    .index('by_status', ['status'])
     .index('by_user_status', ['userId', 'status']),
 
   friends: defineTable({
@@ -134,9 +144,69 @@ export default defineSchema({
     title: v.string(),
     body: v.string(),
     matchId: v.optional(v.id('matches')),
+    betId: v.optional(v.id('bets')), // prono résolu → ouvre l'écran de résultat du pari
     read: v.boolean(),
     createdAt: v.number(),
   }).index('by_user', ['userId']),
+
+  // Détail d'un match (TheSportsDB v2) : compo, temps forts (timeline), stats, vidéo.
+  // Un doc par match, rempli à la demande (compo ~1h avant, timeline/stats après).
+  matchDetails: defineTable({
+    matchId: v.id('matches'),
+    // Compo. `grid` (ex. "2:4" = ligne:colonne) + les formations viennent d'API-Football
+    // (placement terrain) ; sinon liste TheSportsDB (avec photo, sans grid).
+    homeFormation: v.optional(v.string()),
+    awayFormation: v.optional(v.string()),
+    lineup: v.array(
+      v.object({
+        name: v.string(),
+        photo: v.optional(v.string()),
+        position: v.optional(v.string()),
+        positionShort: v.optional(v.string()),
+        number: v.optional(v.number()),
+        grid: v.optional(v.string()),
+        isSub: v.boolean(),
+        isHome: v.boolean(),
+      }),
+    ),
+    timeline: v.array(
+      v.object({
+        minute: v.optional(v.number()),
+        type: v.string(), // goal | card | subst | var | other
+        detail: v.optional(v.string()),
+        player: v.optional(v.string()),
+        playerPhoto: v.optional(v.string()),
+        assist: v.optional(v.string()),
+        isHome: v.boolean(),
+      }),
+    ),
+    stats: v.array(
+      v.object({
+        stat: v.string(),
+        home: v.optional(v.string()),
+        away: v.optional(v.string()),
+      }),
+    ),
+    videoUrl: v.optional(v.string()),
+    venue: v.optional(v.string()),
+    spectators: v.optional(v.number()),
+    updatedAt: v.number(),
+  }).index('by_match', ['matchId']),
+
+  // Cotes réelles (odds-api.io, Betfair Exchange) par match. Marchés absents → fallback Poisson.
+  odds: defineTable({
+    matchId: v.id('matches'),
+    home: v.optional(v.number()),
+    draw: v.optional(v.number()),
+    away: v.optional(v.number()),
+    over: v.optional(v.number()),
+    under: v.optional(v.number()),
+    bttsYes: v.optional(v.number()),
+    bttsNo: v.optional(v.number()),
+    source: v.string(), // 'odds-api.io'
+    bookmaker: v.optional(v.string()),
+    updatedAt: v.number(),
+  }).index('by_match', ['matchId']),
 
   // Classements (poules) — ingéré depuis le endpoint « table » de TheSportsDB.
   standings: defineTable({
@@ -156,4 +226,25 @@ export default defineSchema({
     points: v.number(),
     updatedAt: v.number(),
   }).index('by_competition', ['competitionApiId']),
+
+  // Ligues privées : un créateur, un code d'invitation, des membres.
+  leagues: defineTable({
+    name: v.string(),
+    emoji: v.optional(v.string()),
+    code: v.string(), // code d'invitation unique (ex. « K7M2PQ »)
+    ownerId: v.id('users'),
+    createdAt: v.number(),
+  })
+    .index('by_code', ['code'])
+    .index('by_owner', ['ownerId']),
+
+  // Appartenance à une ligue. Le score de ligue = bénéfice de pronos depuis `joinedAt`.
+  leagueMembers: defineTable({
+    leagueId: v.id('leagues'),
+    userId: v.id('users'),
+    joinedAt: v.number(),
+  })
+    .index('by_league', ['leagueId'])
+    .index('by_user', ['userId'])
+    .index('by_league_user', ['leagueId', 'userId']),
 });
