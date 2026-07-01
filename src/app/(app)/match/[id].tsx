@@ -4,10 +4,9 @@ import type { Id } from '@convex/_generated/dataModel';
 import { useAction, useQuery } from 'convex/react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Image, Linking, Pressable, ScrollView, Text, View } from 'react-native';
+import { Linking, Pressable, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { FlameBalance } from '@/components/FlameBalance';
 import { BrutalBox } from '@/components/brutal/BrutalBox';
 import { BrutalButton } from '@/components/brutal/BrutalButton';
 import { BrutalSegment } from '@/components/brutal/Segment';
@@ -18,9 +17,8 @@ import { StatsView } from '@/components/match/StatsView';
 import { TimelineView } from '@/components/match/TimelineView';
 import { ScreenBackground } from '@/components/ScreenBackground';
 import { EVENTS, track } from '@/lib/analytics';
-import { LOGO } from '@/lib/assets';
 import { hardShadow } from '@/lib/brutal';
-import { COMP_NAME, formatHeroDate } from '@/lib/format';
+import { COMP_NAME, formatHeroDate, phaseHeading } from '@/lib/format';
 import { frTeam } from '@/lib/teamNames';
 
 const TWO_HOURS = 2 * 60 * 60 * 1000;
@@ -74,21 +72,25 @@ export default function MatchDetail() {
   return (
     <ScreenBackground variant="app">
       <View className="flex-1" style={{ paddingTop: insets.top + 8 }}>
-        <View className="flex-row items-center justify-between px-4 pt-2">
+        <View className="flex-row items-center justify-between px-4 pb-1 pt-1">
           <Pressable
             onPress={() => (router.canGoBack() ? router.back() : router.replace('/matches'))}
             className="h-11 w-11 items-center justify-center border-2 border-white bg-ink"
-            style={[{ borderRadius: 0 }, hardShadow('#E5342B', 4)]}
+            style={[{ borderRadius: 0 }, hardShadow('#E5342B', 3)]}
           >
             <Ionicons name="chevron-back" size={24} color="#ffffff" />
           </Pressable>
-          <Image
-            source={LOGO}
-            style={{ width: 120, height: 23 }}
-            resizeMode="contain"
-            accessibilityLabel="Djassa Foot"
-          />
-          <FlameBalance />
+          <Text className="font-display text-lg uppercase text-white" style={{ letterSpacing: 0.5 }}>
+            {match ? phaseHeading(match.round) : 'Match'}
+          </Text>
+          <Pressable
+            onPress={() => router.push('/bracket')}
+            className="h-11 w-11 items-center justify-center border-2 border-white bg-ink"
+            style={[{ borderRadius: 0 }, hardShadow('#E5342B', 3)]}
+            accessibilityLabel="Voir le tableau final"
+          >
+            <Ionicons name="git-network-outline" size={20} color="#ffffff" />
+          </Pressable>
         </View>
 
         {match ? (
@@ -97,84 +99,68 @@ export default function MatchDetail() {
             contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 24, paddingBottom: 40, gap: 20 }}
             showsVerticalScrollIndicator={false}
           >
-            {/* Compétition */}
-            <View className="flex-row items-center gap-2">
-              <View className="h-[10px] w-[10px] bg-red" style={{ borderRadius: 0 }} />
-              <Text className="font-mono-bold text-xs uppercase tracking-widest text-muted">
-                {COMP_NAME[match.competitionApiId] ?? 'Coupe du Monde'}
-              </Text>
-            </View>
-
-            {/* Bloc central : drapeaux + score/VS */}
-            <BrutalBox shadow="#E5342B" offset={6} borderWidth={2} className="bg-surface-3 px-4 py-6">
-              <View className="flex-row items-center justify-between">
-                <View className="items-center gap-2" style={{ width: 96 }}>
-                  <View
-                    className="items-center justify-center border-2 border-white bg-ink"
-                    style={{ width: 76, height: 76, borderRadius: 0 }}
-                  >
-                    <Flag name={match.homeName} size={52} />
-                  </View>
-                </View>
-
-                {match.status === 'scheduled' ? (
-                  <View
-                    className="items-center justify-center border-2 border-white bg-red"
-                    style={[{ width: 56, height: 56, borderRadius: 0 }, hardShadow('#0A1230', 4)]}
-                  >
-                    <Text className="font-display text-2xl uppercase text-white">VS</Text>
-                  </View>
-                ) : (
-                  <View className="items-center">
-                    <View
-                      className="items-center justify-center border-2 border-white bg-ink px-3 py-1"
-                      style={[{ borderRadius: 0 }, hardShadow('#E5342B', 4)]}
-                    >
-                      <Text className="font-display text-4xl text-white">
-                        {match.homeScore ?? 0} - {match.awayScore ?? 0}
-                      </Text>
-                    </View>
-                    {match.homePenalty != null && match.awayPenalty != null ? (
-                      <Text className="mt-1.5 font-mono-bold text-[10px] uppercase text-red">
-                        T.a.b. {match.homePenalty} - {match.awayPenalty}
-                      </Text>
-                    ) : null}
-                    {match.status === 'live' ? (
-                      <View className="mt-2 flex-row items-center gap-1.5 bg-red px-2 py-0.5" style={{ borderRadius: 0 }}>
-                        <View className="h-1.5 w-1.5 bg-white" style={{ borderRadius: 0 }} />
-                        <Text className="font-mono-bold text-[10px] uppercase tracking-widest text-white">Live</Text>
-                      </View>
-                    ) : null}
-                  </View>
-                )}
-
-                <View className="items-center gap-2" style={{ width: 96 }}>
-                  <View
-                    className="items-center justify-center border-2 border-white bg-ink"
-                    style={{ width: 76, height: 76, borderRadius: 0 }}
-                  >
-                    <Flag name={match.awayName} size={52} />
-                  </View>
-                </View>
+            {/* Hero compact : drapeaux + noms + score/statut */}
+            <BrutalBox shadow="#E5342B" offset={6} borderWidth={2} className="bg-surface-3 px-4 py-4">
+              <View className="mb-3 flex-row items-center justify-center gap-2">
+                <View className="h-2 w-2 bg-red" style={{ borderRadius: 0 }} />
+                <Text className="font-mono-bold text-[10px] uppercase text-muted" style={{ letterSpacing: 1.2 }}>
+                  {COMP_NAME[match.competitionApiId] ?? 'Coupe du Monde'} · {phaseHeading(match.round)}
+                </Text>
               </View>
 
-              <View className="mt-5 h-[3px] w-full bg-red" style={{ borderRadius: 0 }} />
-              <Text className="mt-4 text-center font-display text-2xl uppercase text-white">
-                {frTeam(match.homeName)} — {frTeam(match.awayName)}
-              </Text>
-            </BrutalBox>
+              <View className="flex-row items-center">
+                <View className="flex-1 flex-row items-center gap-2">
+                  <Flag name={match.homeName} size={30} />
+                  <Text numberOfLines={2} className="flex-1 font-display text-[13px] uppercase text-white">
+                    {frTeam(match.homeName)}
+                  </Text>
+                </View>
 
-            {/* Statut / date */}
-            <View className="flex-row items-center gap-2">
-              <View className="h-[10px] w-[10px] bg-red" style={{ borderRadius: 0 }} />
-              <Text className="font-mono-bold text-sm uppercase tracking-wide text-muted">
-                {match.status === 'live'
-                  ? `${match.minute ? `${match.minute}' · ` : ''}En cours`
-                  : match.status === 'finished'
-                    ? 'Terminé'
-                    : formatHeroDate(match.kickoff)}
-              </Text>
-            </View>
+                <View className="items-center gap-1.5 px-2">
+                  {match.status === 'scheduled' ? (
+                    <>
+                      <Text className="font-display text-2xl uppercase text-red">VS</Text>
+                      <Text className="font-mono-bold text-[9px] uppercase text-muted">
+                        {formatHeroDate(match.kickoff)}
+                      </Text>
+                    </>
+                  ) : (
+                    <>
+                      <Text className="font-display text-[26px] text-white">
+                        {match.homeScore ?? 0} - {match.awayScore ?? 0}
+                      </Text>
+                      {match.status === 'live' ? (
+                        <View
+                          className="flex-row items-center gap-1.5 bg-red px-2 py-0.5"
+                          style={{ borderRadius: 0 }}
+                        >
+                          <View className="h-1.5 w-1.5 bg-white" style={{ borderRadius: 0 }} />
+                          <Text className="font-mono-bold text-[9px] uppercase text-white" style={{ letterSpacing: 0.5 }}>
+                            {match.minute ? `${match.minute}'` : 'Live'}
+                          </Text>
+                        </View>
+                      ) : (
+                        <Text className="font-mono-bold text-[9px] uppercase text-muted" style={{ letterSpacing: 0.5 }}>
+                          Terminé
+                        </Text>
+                      )}
+                      {match.homePenalty != null && match.awayPenalty != null ? (
+                        <Text className="font-mono-bold text-[9px] uppercase text-red">
+                          T.a.b. {match.homePenalty}-{match.awayPenalty}
+                        </Text>
+                      ) : null}
+                    </>
+                  )}
+                </View>
+
+                <View className="flex-1 flex-row items-center justify-end gap-2">
+                  <Text numberOfLines={2} className="flex-1 text-right font-display text-[13px] uppercase text-white">
+                    {frTeam(match.awayName)}
+                  </Text>
+                  <Flag name={match.awayName} size={30} />
+                </View>
+              </View>
+            </BrutalBox>
 
             {/* Action prono */}
             {canPredict ? (

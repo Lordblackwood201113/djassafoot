@@ -64,12 +64,17 @@ function Jersey({ p, x, y, isHome }: { p: LineupPlayer; x: number; y: number; is
           {p.number ?? ''}
         </Text>
       </View>
-      <Text
-        numberOfLines={1}
-        className="mt-0.5 w-full text-center font-mono-bold text-[8px] uppercase text-white"
+      <View
+        style={{ marginTop: 3, maxWidth: 66, backgroundColor: '#0A1230E6', paddingHorizontal: 4, paddingVertical: 1 }}
       >
-        {surname(p.name)}
-      </Text>
+        <Text
+          numberOfLines={1}
+          className="font-mono-bold text-[8px] uppercase text-white"
+          style={{ letterSpacing: 0.3 }}
+        >
+          {surname(p.name)}
+        </Text>
+      </View>
     </View>
   );
 }
@@ -138,23 +143,43 @@ export function PitchView({
         className="w-full overflow-hidden border-2 border-white"
         style={{ height: PITCH_HEIGHT, borderRadius: 0, backgroundColor: '#123522' }}
       >
+        {/* Pelouse tondue (bandes alternées) */}
+        {[0, 1, 2, 3, 4, 5].map((i) => (
+          <View
+            key={`band${i}`}
+            style={{
+              position: 'absolute',
+              left: 0,
+              right: 0,
+              top: (PITCH_HEIGHT / 6) * i,
+              height: PITCH_HEIGHT / 6,
+              backgroundColor: i % 2 ? '#16422B' : '#123522',
+            }}
+          />
+        ))}
+
         {/* Lignes du terrain */}
-        <View style={{ position: 'absolute', top: '50%', left: 0, right: 0, height: 2, backgroundColor: 'rgba(255,255,255,0.4)' }} />
+        <View style={{ position: 'absolute', top: '50%', left: 0, right: 0, height: 2, backgroundColor: 'rgba(255,255,255,0.45)' }} />
         <View
           style={{
             position: 'absolute',
             top: '50%',
             left: '50%',
-            width: 72,
-            height: 72,
-            marginLeft: -36,
-            marginTop: -36,
+            width: 76,
+            height: 76,
+            marginLeft: -38,
+            marginTop: -38,
             borderWidth: 2,
-            borderColor: 'rgba(255,255,255,0.4)',
+            borderColor: 'rgba(255,255,255,0.45)',
+            borderRadius: 38,
           }}
         />
-        <View style={{ position: 'absolute', top: 8, left: '50%', width: 96, height: 40, marginLeft: -48, borderWidth: 2, borderColor: 'rgba(255,255,255,0.3)' }} />
-        <View style={{ position: 'absolute', bottom: 8, left: '50%', width: 96, height: 40, marginLeft: -48, borderWidth: 2, borderColor: 'rgba(255,255,255,0.3)' }} />
+        <View style={{ position: 'absolute', top: '50%', left: '50%', width: 6, height: 6, marginLeft: -3, marginTop: -3, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.5)' }} />
+        {/* Surfaces de réparation + 6 mètres */}
+        <View style={{ position: 'absolute', top: 0, left: '50%', width: 100, height: 44, marginLeft: -50, borderWidth: 2, borderColor: 'rgba(255,255,255,0.3)' }} />
+        <View style={{ position: 'absolute', top: 0, left: '50%', width: 50, height: 18, marginLeft: -25, borderWidth: 2, borderColor: 'rgba(255,255,255,0.28)' }} />
+        <View style={{ position: 'absolute', bottom: 0, left: '50%', width: 100, height: 44, marginLeft: -50, borderWidth: 2, borderColor: 'rgba(255,255,255,0.3)' }} />
+        <View style={{ position: 'absolute', bottom: 0, left: '50%', width: 50, height: 18, marginLeft: -25, borderWidth: 2, borderColor: 'rgba(255,255,255,0.28)' }} />
 
         {awayXI.map(({ p, x, y }, i) => (
           <Jersey key={`a${i}`} p={p} x={x} y={y} isHome={false} />
