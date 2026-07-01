@@ -1,4 +1,4 @@
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { api } from '@convex/_generated/api';
 import type { Id } from '@convex/_generated/dataModel';
 import { useAction, useQuery } from 'convex/react';
@@ -89,7 +89,7 @@ export default function MatchDetail() {
             style={[{ borderRadius: 0 }, hardShadow('#E5342B', 3)]}
             accessibilityLabel="Voir le tableau final"
           >
-            <Ionicons name="git-network-outline" size={20} color="#ffffff" />
+            <MaterialCommunityIcons name="tournament" size={20} color="#ffffff" />
           </Pressable>
         </View>
 
