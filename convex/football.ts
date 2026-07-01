@@ -2,6 +2,7 @@ import { v } from 'convex/values';
 
 import { api, internal } from './_generated/api';
 import { internalAction, internalMutation } from './_generated/server';
+import { KO_ROUNDS } from './rounds';
 
 // FIFA World Cup 2026 sur TheSportsDB (v2, header X-API-KEY).
 const WC_LEAGUE = '4429';
@@ -164,8 +165,13 @@ export const syncFixtures = internalAction({
     const events: any[] = data.schedule ?? data.events ?? [];
     const matches = events.map(normalize).filter((m) => m.apiId && m.kickoff);
     const { count, settledMatchIds } = await ctx.runMutation(internal.football.upsertMatches, { matches });
-    for (const matchId of settledMatchIds) {
-      await ctx.runMutation(internal.settlement.settleMatch, { matchId });
+    if (settledMatchIds.length) {
+      // Match tout juste terminé : enrichir (score 90' + t.a.b. des KO via API-Football) AVANT de
+      // régler, pour trancher les paris au temps réglementaire dès la fin du match.
+      await ctx.runAction(internal.football.enrichPenalties, {});
+      for (const matchId of settledMatchIds) {
+        await ctx.runMutation(internal.settlement.settleMatch, { matchId });
+      }
     }
     return count;
   },
@@ -174,20 +180,22 @@ export const syncFixtures = internalAction({
 // Tirs au but (phase finale). TheSportsDB ne fournit pas de score de séance → on l'obtient
 // d'API-Football (`score.penalty`) via l'idAPIfootball du match. Seulement pour les matchs à
 // élimination TERMINÉS sur un score de parité et pas encore enrichis (donc très peu d'appels).
-const KO_ROUNDS = ['32', '16', '125', '150', '200'];
-
 export const setKnockoutResult = internalMutation({
   args: {
     matchId: v.id('matches'),
     winner: v.optional(v.union(v.literal('home'), v.literal('away'))),
     homePenalty: v.optional(v.number()),
     awayPenalty: v.optional(v.number()),
+    regHomeScore: v.optional(v.number()),
+    regAwayScore: v.optional(v.number()),
   },
-  handler: async (ctx, { matchId, winner, homePenalty, awayPenalty }) => {
+  handler: async (ctx, { matchId, winner, homePenalty, awayPenalty, regHomeScore, regAwayScore }) => {
     const patch: Record<string, unknown> = { updatedAt: Date.now() };
     if (winner) patch.winner = winner;
     if (homePenalty != null) patch.homePenalty = homePenalty;
     if (awayPenalty != null) patch.awayPenalty = awayPenalty;
+    if (regHomeScore != null) patch.regHomeScore = regHomeScore;
+    if (regAwayScore != null) patch.regAwayScore = regAwayScore;
     await ctx.db.patch(matchId, patch);
   },
 });
@@ -199,16 +207,16 @@ export const enrichPenalties = internalAction({
     if (!process.env.THESPORTSDB_KEY || !afKey) return { checked: 0, filled: 0 };
 
     const all = await ctx.runQuery(api.matches.list);
-    // Matchs à élimination terminés sur un score de parité (donc décidés en prolongation/t.a.b.),
-    // dont on n'a pas encore le vainqueur ni le score des tirs au but.
+    // Tous les matchs à élimination TERMINÉS pas encore enrichis : on capte le score au temps
+    // réglementaire (`score.fulltime` = 90', base de règlement des paris) + le vainqueur et le
+    // score des tirs au but (pour le bracket). 1 appel API-Football par match, une seule fois.
     const pending = all.filter(
       (m) =>
         KO_ROUNDS.includes(m.round ?? '') &&
         m.status === 'finished' &&
         m.homeScore != null &&
         m.awayScore != null &&
-        m.homeScore === m.awayScore &&
-        (m.winner == null || m.homePenalty == null),
+        (m.regHomeScore == null || m.regAwayScore == null || m.winner == null),
     );
 
     let filled = 0;
@@ -237,13 +245,19 @@ export const enrichPenalties = internalAction({
         const pen = f.score?.penalty;
         const homePenalty = typeof pen?.home === 'number' ? pen.home : undefined;
         const awayPenalty = typeof pen?.away === 'number' ? pen.away : undefined;
+        // Score au temps réglementaire (90') = base de règlement des paris (règle bookmaker).
+        const ft = f.score?.fulltime;
+        const regHomeScore = typeof ft?.home === 'number' ? ft.home : undefined;
+        const regAwayScore = typeof ft?.away === 'number' ? ft.away : undefined;
 
-        if (winner || homePenalty != null) {
+        if (winner || homePenalty != null || regHomeScore != null) {
           await ctx.runMutation(internal.football.setKnockoutResult, {
             matchId: m._id,
             winner,
             homePenalty,
             awayPenalty,
+            regHomeScore,
+            regAwayScore,
           });
           filled++;
         }
@@ -266,8 +280,13 @@ export const ingestLive = internalAction({
     const events: any[] = data.livescore ?? data.events ?? [];
     const matches = events.map(normalize).filter((m) => m.apiId);
     const { count, settledMatchIds } = await ctx.runMutation(internal.football.upsertMatches, { matches });
-    for (const matchId of settledMatchIds) {
-      await ctx.runMutation(internal.settlement.settleMatch, { matchId });
+    if (settledMatchIds.length) {
+      // Match tout juste terminé : enrichir (score 90' + t.a.b. des KO via API-Football) AVANT de
+      // régler, pour trancher les paris au temps réglementaire dès la fin du match.
+      await ctx.runAction(internal.football.enrichPenalties, {});
+      for (const matchId of settledMatchIds) {
+        await ctx.runMutation(internal.settlement.settleMatch, { matchId });
+      }
     }
     return count;
   },

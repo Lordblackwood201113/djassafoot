@@ -2,15 +2,23 @@ import { v } from 'convex/values';
 
 import type { Doc } from './_generated/dataModel';
 import { internalMutation, type MutationCtx } from './_generated/server';
+import { isKnockoutRound } from './rounds';
 
 // Cœur de la résolution : règle tous les paris `pending` d'un match terminé.
 // Idempotent (ne touche que les paris `pending`) → un 2e appel ne re-paie pas.
+//
+// Règle bookmaker : on tranche au TEMPS RÉGLEMENTAIRE (90'). En phase finale, le score 90' =
+// `regHomeScore/regAwayScore` (API-Football `score.fulltime`) → prolongation et tirs au but
+// n'entrent JAMAIS en jeu (marchés 1X2 / +-2,5 / BTTS / score exact). En poule, pas de
+// prolongation possible : le score final EST le score 90'. Tant que le score 90' d'un match KO
+// n'est pas encore récupéré (enrichissement API-Football), on n'règle pas (le cron réessaie).
 async function settleBetsForMatch(ctx: MutationCtx, match: Doc<'matches'>): Promise<number> {
-  if (match.status !== 'finished' || match.homeScore === undefined || match.awayScore === undefined) {
+  const knockout = isKnockoutRound(match.round);
+  const homeScore = knockout ? match.regHomeScore : match.homeScore;
+  const awayScore = knockout ? match.regAwayScore : match.awayScore;
+  if (match.status !== 'finished' || homeScore === undefined || awayScore === undefined) {
     return 0;
   }
-  const homeScore = match.homeScore;
-  const awayScore = match.awayScore;
 
   const bets = await ctx.db
     .query('bets')
