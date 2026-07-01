@@ -1,8 +1,7 @@
 import { useAuth } from '@clerk/expo';
-import { Image } from 'expo-image';
 import { Redirect, useRouter } from 'expo-router';
 import { useEffect, useRef } from 'react';
-import { ActivityIndicator, Text, View } from 'react-native';
+import { ActivityIndicator, Image, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BrutalButton } from '@/components/brutal/BrutalButton';
@@ -59,7 +58,7 @@ export default function Index() {
     return (
       <ScreenBackground variant="hero">
         <View className="flex-1 items-center justify-center">
-          <Image source={logo} style={{ width: 240, height: 45 }} contentFit="contain" />
+          <Image source={logo} style={{ width: 240, height: 45 }} resizeMode="contain" />
           <ActivityIndicator color="#E5342B" style={{ marginTop: 24 }} />
         </View>
       </ScreenBackground>
@@ -76,7 +75,7 @@ export default function Index() {
           <Image
             source={logo}
             style={{ width: 132, height: 25 }}
-            contentFit="contain"
+            resizeMode="contain"
             accessibilityLabel="Djassa Foot"
           />
         </View>
@@ -95,7 +94,7 @@ export default function Index() {
                     key={j}
                     source={src}
                     style={{ width: 48, height: 48, borderRadius: 24 }}
-                    contentFit="cover"
+                    resizeMode="cover"
                   />
                 ))}
               </View>

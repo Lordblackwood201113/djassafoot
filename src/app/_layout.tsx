@@ -1,6 +1,7 @@
 import '@/global.css';
 
 import { ClerkProvider, useAuth } from '@clerk/expo';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { tokenCache } from '@clerk/expo/token-cache';
 import {
   Inter_400Regular,
@@ -76,6 +77,9 @@ export default function RootLayout() {
     Inter_700Bold,
     SpaceMono_400Regular,
     SpaceMono_700Bold,
+    // Polices d'icônes (sinon tab bar / retour / cloche s'affichent en carrés sur le web).
+    ...Ionicons.font,
+    ...MaterialCommunityIcons.font,
   });
 
   useEffect(() => {

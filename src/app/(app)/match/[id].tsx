@@ -2,10 +2,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { api } from '@convex/_generated/api';
 import type { Id } from '@convex/_generated/dataModel';
 import { useAction, useQuery } from 'convex/react';
-import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Linking, Pressable, ScrollView, Text, View } from 'react-native';
+import { Image, Linking, Pressable, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { FlameBalance } from '@/components/FlameBalance';
@@ -86,7 +85,7 @@ export default function MatchDetail() {
           <Image
             source={LOGO}
             style={{ width: 120, height: 23 }}
-            contentFit="contain"
+            resizeMode="contain"
             accessibilityLabel="Djassa Foot"
           />
           <FlameBalance />
