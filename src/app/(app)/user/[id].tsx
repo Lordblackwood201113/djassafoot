@@ -134,11 +134,9 @@ export default function UserProfile() {
                 Aucun prono pour le moment.
               </Text>
             ) : (
-              bets.map((b) => (
-                <Pressable key={b._id} onPress={() => router.push(`/bet/${b._id}`)}>
-                  <BetCard bet={b} />
-                </Pressable>
-              ))
+              // La carte contient déjà tout le pari ; pas de navigation (l'écran détail
+              // /bet est réservé à SES propres paris).
+              bets.map((b) => <BetCard key={b._id} bet={b} />)
             )}
           </ScrollView>
         )}
