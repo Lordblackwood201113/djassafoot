@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { api } from '@convex/_generated/api';
 import type { Id } from '@convex/_generated/dataModel';
 import { useMutation, useQuery } from 'convex/react';
+import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { ActivityIndicator, Image, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 
@@ -24,6 +25,7 @@ function initials(name?: string | null) {
 }
 
 export default function Leaderboard() {
+  const router = useRouter();
   const me = useQuery(api.users.current);
   const globalLeaderboard = useQuery(api.leaderboard.global);
   const friendsLeaderboard = useQuery(api.leaderboard.friends);
@@ -178,7 +180,10 @@ export default function Leaderboard() {
                     className="mb-2 flex-row items-center justify-between border-2 border-white bg-surface-3 px-3 py-2.5"
                     style={{ borderRadius: 0 }}
                   >
-                    <View className="flex-1 flex-row items-center gap-2.5">
+                    <Pressable
+                      onPress={() => router.push(`/user/${user._id}`)}
+                      className="flex-1 flex-row items-center gap-2.5"
+                    >
                       <View
                         className="h-9 w-9 items-center justify-center overflow-hidden border-2 border-white bg-surface-2"
                         style={{ borderRadius: 0 }}
@@ -197,7 +202,7 @@ export default function Leaderboard() {
                           {user.flames.toLocaleString('fr-FR')} 🪙
                         </Text>
                       </View>
-                    </View>
+                    </Pressable>
 
                     {/* Actions d'amitié */}
                     <View className="flex-row items-center gap-1.5">
@@ -422,8 +427,9 @@ export default function Leaderboard() {
                 const isMe = me?._id === item._id;
                 const col = isMe ? '#E5342B' : rankColor(idx);
                 return (
-                  <View
+                  <Pressable
                     key={item._id}
+                    onPress={() => router.push(`/user/${item._id}`)}
                     className="flex-row items-center gap-3 border-2 bg-surface-3 px-3.5 py-3"
                     style={{ borderRadius: 0, borderColor: isMe ? '#E5342B' : '#FFFFFF' }}
                   >
@@ -457,7 +463,7 @@ export default function Leaderboard() {
                     <Text className="font-mono-bold text-[12px]" style={{ color: col }}>
                       {item.flames.toLocaleString('fr-FR')} 🪙
                     </Text>
-                  </View>
+                  </Pressable>
                 );
               })}
             </ScrollView>

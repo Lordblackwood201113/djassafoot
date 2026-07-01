@@ -18,15 +18,13 @@ export const searchUsers = query({
   handler: async (ctx, { queryText }) => {
     const user = await currentUser(ctx);
     if (!user) return [];
-    if (queryText.trim().length < 2) return [];
+    const qq = queryText.trim().toLowerCase();
+    if (qq.length < 2) return [];
 
-    // Recherche de préfixe lexicographique sur l'index by_username
-    const results = await ctx.db
-      .query('users')
-      .withIndex('by_username', (q) =>
-        q.gte('username', queryText).lte('username', queryText + '\uffff'),
-      )
-      .take(15);
+    // Recherche INSENSIBLE À LA CASSE (pseudos Clerk souvent en majuscule → l'index
+    // lexicographique par préfixe échouait). Petit volume → scan borné + filtre en mémoire.
+    const all = await ctx.db.query('users').take(1000);
+    const results = all.filter((u) => u.username.toLowerCase().includes(qq)).slice(0, 15);
 
     // Récupérer toutes les relations de l'utilisateur pour calculer les statuts d'amitié
     const sent = await ctx.db

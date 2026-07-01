@@ -1,9 +1,10 @@
-// Post-build : injecte favicon + balises Open Graph dans dist/index.html.
+// Post-build : favicon de marque + balises Open Graph dans dist/index.html.
 // Nécessaire car `output: single` (SPA) ignore app/+html.tsx. Exécuté après `expo export`.
-import { readFileSync, writeFileSync } from 'node:fs';
+import { copyFileSync, existsSync, readFileSync, writeFileSync } from 'node:fs';
 
 const FILE = 'dist/index.html';
 const MARKER = '<!-- djassafoot-meta -->';
+const V = '4'; // bump pour forcer le rafraîchissement du favicon en cache
 const IMG = 'https://djassafoot.pages.dev/og-image.jpg';
 const SITE = 'https://djassafoot.pages.dev/';
 const DESC = 'Pronostique la Coupe du Monde 2026 et défie tes amis dans des ligues privées. 🪙';
@@ -14,13 +15,19 @@ if (html.includes(MARKER)) {
   process.exit(0);
 }
 
+// Titre
 html = html.replace(/<title>[^<]*<\/title>/i, '<title>Djassa Foot</title>');
+
+// Retire les icônes générées par Expo (dont le favicon.ico par défaut) pour éviter les doublons.
+html = html.replace(/<link[^>]*rel=["']?(shortcut )?(icon|apple-touch-icon)["']?[^>]*>/gi, '');
 
 const tags = `${MARKER}
 <meta name="description" content="${DESC}">
 <meta name="theme-color" content="#0A1230">
-<link rel="icon" type="image/png" href="/favicon.png">
-<link rel="apple-touch-icon" href="/icon.png">
+<link rel="icon" type="image/png" sizes="256x256" href="/icon.png?v=${V}">
+<link rel="icon" type="image/png" sizes="48x48" href="/favicon.png?v=${V}">
+<link rel="shortcut icon" href="/favicon.png?v=${V}">
+<link rel="apple-touch-icon" href="/icon.png?v=${V}">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Djassa Foot">
 <meta property="og:title" content="Djassa Foot — Pronos entre amis">
@@ -43,4 +50,11 @@ if (!html.includes('</head>')) {
 }
 html = html.replace('</head>', `${tags}</head>`);
 writeFileSync(FILE, html);
-console.log('✅ inject-web-meta : favicon + Open Graph injectés dans', FILE);
+
+// Écrase le favicon.ico par défaut d'Expo par le PNG de marque (les navigateurs modernes
+// acceptent un PNG servi en /favicon.ico ; c'est ce que le navigateur charge par défaut).
+if (existsSync('dist/favicon.png')) {
+  copyFileSync('dist/favicon.png', 'dist/favicon.ico');
+}
+
+console.log('✅ inject-web-meta : favicon de marque + Open Graph injectés.');

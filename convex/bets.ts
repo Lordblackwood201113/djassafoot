@@ -172,6 +172,40 @@ export const byId = query({
   },
 });
 
+// Paris d'un utilisateur donné (profil public — visible par tout membre connecté).
+export const forUser = query({
+  args: { userId: v.id('users') },
+  handler: async (ctx, { userId }) => {
+    const me = await currentUser(ctx);
+    if (!me) return [];
+    const bets = await ctx.db
+      .query('bets')
+      .withIndex('by_user', (q) => q.eq('userId', userId))
+      .order('desc')
+      .collect();
+    return Promise.all(
+      bets.map(async (b) => {
+        const m = await ctx.db.get(b.matchId);
+        return {
+          ...b,
+          match: m
+            ? {
+                homeName: m.homeName,
+                awayName: m.awayName,
+                kickoff: m.kickoff,
+                status: m.status,
+                homeScore: m.homeScore,
+                awayScore: m.awayScore,
+                homePenalty: m.homePenalty,
+                awayPenalty: m.awayPenalty,
+              }
+            : null,
+        };
+      }),
+    );
+  },
+});
+
 // Pose un pari combiné : valide, recalcule les cotes (autoritatif), débite les jetons.
 export const place = mutation({
   args: {
