@@ -30,6 +30,7 @@ export default defineSchema({
       v.literal('referral'),
       v.literal('prediction_stake'),
       v.literal('prediction_win'),
+      v.literal('settlement_correction'), // correction admin d'un règlement erroné (montant +/-)
     ),
     refId: v.optional(v.string()),
     createdAt: v.number(),
