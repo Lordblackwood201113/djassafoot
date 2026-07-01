@@ -4,7 +4,7 @@ import { copyFileSync, existsSync, readFileSync, writeFileSync } from 'node:fs';
 
 const FILE = 'dist/index.html';
 const MARKER = '<!-- djassafoot-meta -->';
-const V = '4'; // bump pour forcer le rafraîchissement du favicon en cache
+const V = '5'; // bump pour forcer le rafraîchissement du favicon en cache
 const IMG = 'https://djassafoot.pages.dev/og-image.jpg';
 const SITE = 'https://djassafoot.pages.dev/';
 const DESC = 'Pronostique la Coupe du Monde 2026 et défie tes amis dans des ligues privées. 🪙';
