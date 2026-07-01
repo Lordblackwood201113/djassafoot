@@ -231,6 +231,7 @@ export default defineSchema({
   leagues: defineTable({
     name: v.string(),
     emoji: v.optional(v.string()),
+    logoId: v.optional(v.id('_storage')), // logo perso importé depuis l'appareil (sinon emoji)
     code: v.string(), // code d'invitation unique (ex. « K7M2PQ »)
     ownerId: v.id('users'),
     createdAt: v.number(),

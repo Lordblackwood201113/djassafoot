@@ -36,7 +36,13 @@
           }
         }
       ],
-      "expo-secure-store"
+      "expo-secure-store",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Djassa Foot accède à tes photos pour choisir le logo de ta ligue."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

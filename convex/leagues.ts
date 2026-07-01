@@ -55,8 +55,8 @@ async function memberScore(ctx: QueryCtx, userId: Id<'users'>, since: number): P
 
 // Crée une ligue (le créateur en devient le 1er membre).
 export const create = mutation({
-  args: { name: v.string(), emoji: v.optional(v.string()) },
-  handler: async (ctx, { name, emoji }) => {
+  args: { name: v.string(), emoji: v.optional(v.string()), logoId: v.optional(v.id('_storage')) },
+  handler: async (ctx, { name, emoji, logoId }) => {
     const user = await currentUser(ctx);
     if (!user) throw new Error('Non authentifié');
     const clean = name.trim().slice(0, 40);
@@ -66,12 +66,65 @@ export const create = mutation({
     const leagueId = await ctx.db.insert('leagues', {
       name: clean,
       emoji: emoji || undefined,
+      logoId: logoId || undefined,
       code,
       ownerId: user._id,
       createdAt: now,
     });
     await ctx.db.insert('leagueMembers', { leagueId, userId: user._id, joinedAt: now });
     return { leagueId, code };
+  },
+});
+
+// Fournit une URL d'upload signée (le client y POST l'image, récupère un storageId).
+export const generateUploadUrl = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const user = await currentUser(ctx);
+    if (!user) throw new Error('Non authentifié');
+    return await ctx.storage.generateUploadUrl();
+  },
+});
+
+// Définit le logo d'une ligue à partir d'une image importée (créateur uniquement).
+export const setLogo = mutation({
+  args: { leagueId: v.id('leagues'), storageId: v.id('_storage') },
+  handler: async (ctx, { leagueId, storageId }) => {
+    const user = await currentUser(ctx);
+    if (!user) throw new Error('Non authentifié');
+    const league = await ctx.db.get(leagueId);
+    if (!league) throw new Error('Ligue introuvable');
+    if (league.ownerId !== user._id) throw new Error('Seul le créateur peut changer le logo');
+    if (league.logoId && league.logoId !== storageId) {
+      try {
+        await ctx.storage.delete(league.logoId); // évite les fichiers orphelins
+      } catch {
+        /* déjà supprimé */
+      }
+    }
+    await ctx.db.patch(leagueId, { logoId: storageId });
+    return { ok: true };
+  },
+});
+
+// Retire le logo importé → retour à l'emoji (créateur uniquement).
+export const removeLogo = mutation({
+  args: { leagueId: v.id('leagues') },
+  handler: async (ctx, { leagueId }) => {
+    const user = await currentUser(ctx);
+    if (!user) throw new Error('Non authentifié');
+    const league = await ctx.db.get(leagueId);
+    if (!league) throw new Error('Ligue introuvable');
+    if (league.ownerId !== user._id) throw new Error('Seul le créateur peut changer le logo');
+    if (league.logoId) {
+      try {
+        await ctx.storage.delete(league.logoId);
+      } catch {
+        /* déjà supprimé */
+      }
+    }
+    await ctx.db.patch(leagueId, { logoId: undefined });
+    return { ok: true };
   },
 });
 
@@ -122,6 +175,13 @@ export const leave = mutation({
         .withIndex('by_league', (q) => q.eq('leagueId', leagueId))
         .collect();
       if (rest.length === 0) {
+        if (league.logoId) {
+          try {
+            await ctx.storage.delete(league.logoId);
+          } catch {
+            /* déjà supprimé */
+          }
+        }
         await ctx.db.delete(leagueId);
       } else {
         const next = rest.sort((a, b) => a.joinedAt - b.joinedAt)[0];
@@ -146,6 +206,13 @@ export const remove = mutation({
       .withIndex('by_league', (q) => q.eq('leagueId', leagueId))
       .collect();
     for (const m of members) await ctx.db.delete(m._id);
+    if (league.logoId) {
+      try {
+        await ctx.storage.delete(league.logoId);
+      } catch {
+        /* déjà supprimé */
+      }
+    }
     await ctx.db.delete(leagueId);
     return { removed: true };
   },
@@ -192,6 +259,7 @@ export const myLeagues = query({
         _id: league._id,
         name: league.name,
         emoji: league.emoji,
+        logoUrl: league.logoId ? await ctx.storage.getUrl(league.logoId) : null,
         code: league.code,
         isOwner: league.ownerId === user._id,
         memberCount: members.length,
@@ -236,6 +304,7 @@ export const detail = query({
       _id: league._id,
       name: league.name,
       emoji: league.emoji,
+      logoUrl: league.logoId ? await ctx.storage.getUrl(league.logoId) : null,
       code: league.code,
       isOwner: league.ownerId === user._id,
       memberCount: rows.length,
@@ -257,6 +326,12 @@ export const byCode = query({
       .query('leagueMembers')
       .withIndex('by_league', (q) => q.eq('leagueId', league._id))
       .collect();
-    return { _id: league._id, name: league.name, emoji: league.emoji, memberCount: members.length };
+    return {
+      _id: league._id,
+      name: league.name,
+      emoji: league.emoji,
+      logoUrl: league.logoId ? await ctx.storage.getUrl(league.logoId) : null,
+      memberCount: members.length,
+    };
   },
 });

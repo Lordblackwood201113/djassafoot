@@ -12,6 +12,7 @@ import { BrutalButton } from '@/components/brutal/BrutalButton';
 import { fmtScore, scoreColor } from '@/components/leagues/LeaguesTab';
 import { ScreenBackground } from '@/components/ScreenBackground';
 import { hardShadow } from '@/lib/brutal';
+import { pickSquareImage, uploadToConvex } from '@/lib/leagueLogo';
 
 const MUT2 = '#6B77A8';
 
@@ -35,9 +36,39 @@ export default function LeagueDetail() {
   const leave = useMutation(api.leagues.leave);
   const remove = useMutation(api.leagues.remove);
   const kick = useMutation(api.leagues.kick);
+  const generateUploadUrl = useMutation(api.leagues.generateUploadUrl);
+  const setLogo = useMutation(api.leagues.setLogo);
+  const removeLogo = useMutation(api.leagues.removeLogo);
   const [busy, setBusy] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [shareMsg, setShareMsg] = useState('');
+  const [logoBusy, setLogoBusy] = useState(false);
+
+  // Importe une image de l'appareil → upload Convex → définit le logo de la ligue.
+  const onChangeLogo = async () => {
+    if (!league || logoBusy) return;
+    setLogoBusy(true);
+    try {
+      const picked = await pickSquareImage();
+      if (!picked) return; // annulé / accès refusé
+      const url = await generateUploadUrl();
+      const storageId = await uploadToConvex(url, picked.blob);
+      await setLogo({ leagueId: league._id, storageId: storageId as Id<'_storage'> });
+    } catch (e) {
+      setShareMsg(e instanceof Error ? e.message : "Échec de l'import du logo");
+    } finally {
+      setLogoBusy(false);
+    }
+  };
+  const onRemoveLogo = async () => {
+    if (!league || logoBusy) return;
+    setLogoBusy(true);
+    try {
+      await removeLogo({ leagueId: league._id });
+    } finally {
+      setLogoBusy(false);
+    }
+  };
 
   const onShare = async () => {
     if (!league) return;
@@ -162,16 +193,25 @@ export default function LeagueDetail() {
               className="items-center gap-3 border-2 border-white bg-surface-3 px-4 pb-5 pt-6"
               style={[{ borderRadius: 0 }, hardShadow('#3FCB86', 6)]}
             >
-              <View
-                className="h-16 w-16 items-center justify-center border-2 border-white bg-red"
+              <Pressable
+                disabled={!league.isOwner || logoBusy}
+                onPress={onChangeLogo}
+                className="h-16 w-16 items-center justify-center overflow-hidden border-2 border-white bg-red"
                 style={[{ borderRadius: 0 }, hardShadow('#0A1230', 3)]}
               >
-                {league.emoji ? (
+                {league.logoUrl ? (
+                  <Image source={{ uri: league.logoUrl }} style={{ width: 60, height: 60 }} contentFit="cover" />
+                ) : league.emoji ? (
                   <Text className="text-[34px]">{league.emoji}</Text>
                 ) : (
                   <Ionicons name="trophy" size={30} color="#ffffff" />
                 )}
-              </View>
+                {league.isOwner ? (
+                  <View className="absolute bottom-0 right-0 h-5 w-5 items-center justify-center border-2 border-white bg-ink">
+                    <Ionicons name={logoBusy ? 'hourglass' : 'camera'} size={11} color="#ffffff" />
+                  </View>
+                ) : null}
+              </Pressable>
               <Text numberOfLines={2} className="text-center font-display text-2xl uppercase text-white">
                 {league.name}
               </Text>
@@ -179,6 +219,22 @@ export default function LeagueDetail() {
                 {league.memberCount} membre{league.memberCount > 1 ? 's' : ''}
                 {league.isOwner ? ' · admin' : ''}
               </Text>
+              {league.isOwner ? (
+                <View className="flex-row items-center gap-3">
+                  <Pressable onPress={onChangeLogo} disabled={logoBusy}>
+                    <Text className="font-mono-bold text-[10px] uppercase text-green" style={{ letterSpacing: 0.5 }}>
+                      {logoBusy ? 'Import…' : league.logoUrl ? 'Changer le logo' : 'Importer un logo'}
+                    </Text>
+                  </Pressable>
+                  {league.logoUrl ? (
+                    <Pressable onPress={onRemoveLogo} disabled={logoBusy}>
+                      <Text className="font-mono-bold text-[10px] uppercase text-red" style={{ letterSpacing: 0.5 }}>
+                        Retirer
+                      </Text>
+                    </Pressable>
+                  ) : null}
+                </View>
+              ) : null}
 
               {/* Code d'invitation + copie */}
               <View

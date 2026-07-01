@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { api } from '@convex/_generated/api';
 import { useMutation, useQuery } from 'convex/react';
+import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
@@ -105,10 +106,14 @@ export function LeaguesTab() {
               className="flex-row items-center gap-3 bg-surface-3 p-3.5"
             >
               <View
-                className="h-11 w-11 items-center justify-center border-2 border-white bg-ink"
+                className="h-11 w-11 items-center justify-center overflow-hidden border-2 border-white bg-ink"
                 style={{ borderRadius: 0 }}
               >
-                <Text className="text-[20px]">{l.emoji || '🏆'}</Text>
+                {l.logoUrl ? (
+                  <Image source={{ uri: l.logoUrl }} style={{ width: 40, height: 40 }} contentFit="cover" />
+                ) : (
+                  <Text className="text-[20px]">{l.emoji || '🏆'}</Text>
+                )}
               </View>
               <View className="flex-1">
                 <Text numberOfLines={1} className="font-mono-bold text-[14px] uppercase text-white">
