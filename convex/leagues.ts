@@ -32,16 +32,23 @@ async function uniqueCode(ctx: MutationCtx): Promise<string> {
   return makeCode(8);
 }
 
-// Score de ligue d'un membre = bénéfice net de ses PRONOS depuis son entrée (hors bonus).
+// Score de ligue d'un membre = P&L de ses paris RÉGLÉS depuis son entrée.
+// On ne retranche la mise QUE si le pari est perdu. Un pari en attente (résultat encore
+// inconnu) ne compte pas → pas de solde négatif tant qu'aucun pari n'est réellement perdu.
 async function memberScore(ctx: QueryCtx, userId: Id<'users'>, since: number): Promise<number> {
-  const txs = await ctx.db
-    .query('flameTransactions')
+  const bets = await ctx.db
+    .query('bets')
     .withIndex('by_user', (q) => q.eq('userId', userId))
     .collect();
   let score = 0;
-  for (const t of txs) {
-    if (t.createdAt < since) continue;
-    if (t.reason === 'prediction_stake' || t.reason === 'prediction_win') score += t.amount;
+  for (const b of bets) {
+    if (b.createdAt < since) continue; // uniquement les paris placés depuis l'entrée
+    if (b.status === 'won') {
+      score += (b.payout ?? b.potentialPayout) - b.stake; // bénéfice net (gain − mise)
+    } else if (b.status === 'lost') {
+      score -= b.stake; // mise perdue
+    }
+    // 'pending' / 'void' → 0 (on attend le résultat, rien n'est retranché)
   }
   return score;
 }

@@ -5,7 +5,7 @@ import { useMutation, useQuery } from 'convex/react';
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, ScrollView, Share, Text, View } from 'react-native';
+import { Platform, Pressable, ScrollView, Share, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BrutalBox } from '@/components/brutal/BrutalBox';
@@ -29,31 +29,6 @@ function joinLink(code: string) {
   return `${origin}/league/join/${code}`;
 }
 
-async function shareLeague(name: string, code: string) {
-  const link = joinLink(code);
-  const message = `Rejoins ma ligue "${name}" sur Djassa Foot 🪙 — code ${code}\n${link}`;
-  const nav: any = typeof navigator !== 'undefined' ? navigator : undefined;
-  try {
-    if (nav?.share) {
-      await nav.share({ title: 'Djassa Foot', text: message, url: link });
-      return;
-    }
-  } catch {
-    /* annulé */
-  }
-  try {
-    await Share.share({ message });
-    return;
-  } catch {
-    /* non supporté */
-  }
-  try {
-    if (nav?.clipboard) await nav.clipboard.writeText(link);
-  } catch {
-    /* ignore */
-  }
-}
-
 export default function LeagueDetail() {
   const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -64,6 +39,45 @@ export default function LeagueDetail() {
   const kick = useMutation(api.leagues.kick);
   const [busy, setBusy] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [shareMsg, setShareMsg] = useState('');
+
+  const onShare = async () => {
+    if (!league) return;
+    const link = joinLink(league.code);
+    const message = `Rejoins ma ligue "${league.name}" sur Djassa Foot 🪙 — code ${league.code}\n${link}`;
+    if (Platform.OS !== 'web') {
+      // Natif : feuille de partage système (WhatsApp, etc.).
+      try {
+        await Share.share({ message });
+        return;
+      } catch {
+        /* annulé */
+      }
+    } else {
+      const nav: any = typeof navigator !== 'undefined' ? navigator : undefined;
+      // Web Share API (mobile en HTTPS).
+      if (nav?.share) {
+        try {
+          await nav.share({ title: 'Djassa Foot', text: message, url: link });
+        } catch {
+          /* partage annulé */
+        }
+        return;
+      }
+      // Presse-papiers (HTTPS uniquement).
+      try {
+        if (nav?.clipboard?.writeText) {
+          await nav.clipboard.writeText(link);
+          setShareMsg('Lien copié ✅');
+          return;
+        }
+      } catch {
+        /* indispo */
+      }
+    }
+    // Dernier recours (ex. test local en HTTP) : le lien reste affiché à copier à la main.
+    setShareMsg('Copie le lien ci-dessous 👇');
+  };
 
   const onLeave = async () => {
     if (!id) return;
@@ -146,11 +160,20 @@ export default function LeagueDetail() {
                 </Text>
                 <View className="h-2.5 w-2.5 bg-green" />
               </View>
-              <BrutalButton
-                label="Partager le lien"
-                variant="green"
-                onPress={() => shareLeague(league.name, league.code)}
-              />
+
+              {/* Lien complet, sélectionnable → copie manuelle fiable partout (même hors HTTPS) */}
+              <View className="border-2 border-white/30 bg-ink px-3 py-2" style={{ borderRadius: 0 }}>
+                <Text selectable numberOfLines={1} className="font-mono text-[11px] text-white/80">
+                  {joinLink(league.code)}
+                </Text>
+              </View>
+
+              <BrutalButton label="Partager le lien" variant="green" onPress={onShare} />
+              {shareMsg ? (
+                <Text className="text-center font-mono-bold text-[11px] uppercase text-green">
+                  {shareMsg}
+                </Text>
+              ) : null}
             </BrutalBox>
 
             {/* Classement */}
