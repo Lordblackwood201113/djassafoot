@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { api } from '@convex/_generated/api';
 import type { Id } from '@convex/_generated/dataModel';
-import { isPickCompatible } from '@convex/betRules';
+import { isPickCompatible, validateLegs } from '@convex/betRules';
 import { exactOdds } from '@convex/oddsShared';
 import { useQuery } from 'convex/react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -164,6 +164,8 @@ export default function PronoScreen() {
     legs[market]?.pick === pick ? false : !isPickCompatible(currentLegs, { market, pick });
   const exactDisabled =
     !exactOn && !isPickCompatible(currentLegs, { market: 'exact_score', pick: `${hg}-${ag}` });
+  // Garde-fou : la combinaison courante reste-t-elle cohérente ? (ex. score modifié via steppers)
+  const legality = validateLegs(currentLegs);
 
   const updateExact = (nh: number, na: number) => {
     setHg(nh);
@@ -426,13 +428,15 @@ export default function PronoScreen() {
             style={{ borderTopWidth: 2, borderTopColor: '#FFFFFF' }}
           >
             <BrutalButton
-              variant={selectedCount === 0 ? 'ghost' : 'primary'}
-              disabled={selectedCount === 0}
+              variant={selectedCount === 0 || !legality.ok ? 'ghost' : 'primary'}
+              disabled={selectedCount === 0 || !legality.ok}
               onPress={() => router.push('/prono/slip')}
               label={
                 selectedCount === 0
                   ? 'Choisis au moins un pari'
-                  : `Valider · ${selectedCount} sélection${selectedCount > 1 ? 's' : ''}`
+                  : !legality.ok
+                    ? 'Combinaison impossible'
+                    : `Valider · ${selectedCount} sélection${selectedCount > 1 ? 's' : ''}`
               }
             />
           </View>

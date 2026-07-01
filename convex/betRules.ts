@@ -35,14 +35,12 @@ export function areLegsConsistent(legs: LegSel[]): boolean {
   return false;
 }
 
-// Valide un ensemble de legs :
-//  R1 — le score exact est EXCLUSIF (il détermine déjà tout → pas de combinaison).
-//  R2 — la combinaison doit être satisfiable (aucun triplet impossible).
+// Valide un ensemble de legs : on refuse UNIQUEMENT les combinaisons logiquement impossibles
+// (contradictoires) — satisfiabilité. Le score exact PEUT se combiner à un autre pari tant que
+// la combinaison reste cohérente (ex. « victoire domicile » + « 2-0 » = OK ; « Plus de 2,5 » +
+// « 2-0 » = refusé). Décision produit : on privilégie la souplesse ; les cotes corrélées ne sont
+// pas repricées (évolution possible).
 export function validateLegs(legs: LegSel[]): { ok: true } | { ok: false; reason: string } {
-  const hasExact = legs.some((l) => l.market === 'exact_score');
-  if (hasExact && legs.length > 1) {
-    return { ok: false, reason: 'Le score exact ne se combine pas avec un autre pari.' };
-  }
   if (!areLegsConsistent(legs)) {
     return { ok: false, reason: 'Combinaison de pronostics impossible (contradictoire).' };
   }

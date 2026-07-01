@@ -190,7 +190,8 @@ claude-opus-4-8
 
 ### Completion Notes List
 
-- R1 (score exact exclusif) + R2 (satisfiabilité) implémentés dans `convex/betRules.ts` (partagé client/serveur, aucune dépendance Convex → importable des deux côtés).
+- **Décision finale (retour PO)** : on ne bloque QUE les contradictions (**R2 satisfiabilité**). **R1 (score exact exclusif) a été RETIRÉE** : un score exact PEUT se combiner à un autre pari s'ils sont cohérents (ex. « victoire domicile » + « 2-0 » = OK ; « Plus de 2,5 » + « 2-0 » = refusé). Le grisage UI dépend donc du score choisi. `convex/betRules.ts` (partagé client/serveur, aucune dépendance Convex).
+  - Compromis assumé : les cotes de legs corrélés cohérents ne sont pas repricées (produit des cotes) → évolution possible (proba Poisson conjointe).
 - Serveur autoritaire : `convex/bets.ts › place` refuse via `validateLegs` **avant** tout débit/insert (fail‑fast, après les validations de base).
 - UI `prono/[matchId].tsx` : chaque option (1N2/buts/btts) et le bouton « Ajouter » du score exact sont **grisés + non‑pressables** quand ils rendraient la combinaison illégale (`isPickCompatible`). Une option déjà sélectionnée reste désélectionnable.
 - Slip `prono/slip.tsx` : bouton « Valider » bloqué + message de raison si combinaison invalide (miroir du serveur) ; erreurs serveur affichées.
