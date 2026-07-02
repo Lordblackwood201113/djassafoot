@@ -21,7 +21,10 @@
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "web": {
       "bundler": "metro",
@@ -53,6 +56,13 @@
       "typedRoutes": true,
       "reactCompiler": true
     },
-    "backgroundColor": "#0A0A0B"
+    "backgroundColor": "#0A0A0B",
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "d589703a-45b4-4cd0-a6b7-93f25416728c"
+      }
+    },
+    "owner": "lordblackwood2"
   }
 }
