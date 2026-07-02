@@ -11,6 +11,7 @@ export const EVENTS = {
   friendAdded: 'friend_added',
   friendRequestAccepted: 'friend_request_accepted',
   notificationViewed: 'notification_viewed',
+  resultShared: 'result_shared',
 } as const;
 
 export type EventName = (typeof EVENTS)[keyof typeof EVENTS];

@@ -3,6 +3,7 @@ import { api } from '@convex/_generated/api';
 import type { Id } from '@convex/_generated/dataModel';
 import { useQuery } from 'convex/react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -10,6 +11,7 @@ import { BrutalBox } from '@/components/brutal/BrutalBox';
 import { BrutalButton } from '@/components/brutal/BrutalButton';
 import { BetCard, type Bet } from '@/components/prono/BetCard';
 import { ScreenBackground } from '@/components/ScreenBackground';
+import { ShareResultModal } from '@/components/share/ShareResultModal';
 
 // En-tête de résultat selon le statut du pari.
 const HERO: Record<
@@ -27,6 +29,8 @@ export default function BetDetail() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const bet = useQuery(api.bets.byId, id ? { id: id as Id<'bets'> } : 'skip') as Bet | null | undefined;
+  const me = useQuery(api.users.current);
+  const [shareOpen, setShareOpen] = useState(false);
 
   const status = bet?.status ?? 'pending';
   const hero = HERO[status] ?? HERO.pending;
@@ -89,12 +93,26 @@ export default function BetDetail() {
             <BetCard bet={bet} />
 
             <BrutalButton
+              variant="primary"
+              label={status === 'won' ? 'Partager ma victoire' : 'Partager'}
+              onPress={() => setShareOpen(true)}
+            />
+            <BrutalButton
               variant="ghost"
               label="Voir tous mes pronos"
               onPress={() => router.replace('/pronos')}
             />
           </ScrollView>
         )}
+
+        {bet ? (
+          <ShareResultModal
+            bet={bet}
+            username={me?.username}
+            visible={shareOpen}
+            onClose={() => setShareOpen(false)}
+          />
+        ) : null}
       </View>
     </ScreenBackground>
   );
