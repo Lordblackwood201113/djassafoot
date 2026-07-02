@@ -11,10 +11,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BrutalButton } from '@/components/brutal/BrutalButton';
 import { fmtScore, scoreColor } from '@/components/leagues/LeaguesTab';
 import { ScreenBackground } from '@/components/ScreenBackground';
-import { hardShadow } from '@/lib/brutal';
 import { pickSquareImage, uploadToConvex } from '@/lib/leagueLogo';
 
-const MUT2 = '#6B77A8';
+const MUT2 = '#6B7280';
 
 function initials(name?: string) {
   if (!name) return '?';
@@ -156,19 +155,17 @@ export default function LeagueDetail() {
         <View className="flex-row items-center justify-between px-4 pb-1 pt-1">
           <Pressable
             onPress={() => (router.canGoBack() ? router.back() : router.replace('/leaderboard'))}
-            className="h-11 w-11 items-center justify-center border-2 border-white bg-ink"
-            style={[{ borderRadius: 0 }, hardShadow('#E5342B', 3)]}
+            className="h-11 w-11 items-center justify-center rounded-[13px] border border-hairline bg-surface-2"
           >
             <Ionicons name="chevron-back" size={24} color="#ffffff" />
           </Pressable>
-          <Text className="font-display text-xl uppercase text-white" style={{ letterSpacing: 0.5 }}>
+          <Text className="font-display text-xl text-white">
             Ma ligue
           </Text>
           {league ? (
             <Pressable
               onPress={onShare}
-              className="h-11 w-11 items-center justify-center border-2 border-white bg-ink"
-              style={[{ borderRadius: 0 }, hardShadow('#E5342B', 3)]}
+              className="h-11 w-11 items-center justify-center rounded-[13px] border border-hairline bg-surface-2"
             >
               <Ionicons name="share-social" size={20} color="#ffffff" />
             </Pressable>
@@ -178,10 +175,10 @@ export default function LeagueDetail() {
         </View>
 
         {league === undefined ? (
-          <Text className="mt-16 text-center font-mono-bold text-sm uppercase text-muted">Chargement…</Text>
+          <Text className="mt-16 text-center font-ui-semibold text-sm text-muted">Chargement…</Text>
         ) : league === null ? (
           <View className="flex-1 items-center justify-center px-10">
-            <Text className="text-center font-display text-base uppercase text-white">Ligue introuvable</Text>
+            <Text className="text-center font-display text-base text-white">Ligue introuvable</Text>
           </View>
         ) : (
           <ScrollView
@@ -189,15 +186,11 @@ export default function LeagueDetail() {
             showsVerticalScrollIndicator={false}
           >
             {/* Carte identité : blason + nom + code + copie */}
-            <View
-              className="items-center gap-3 border-2 border-white bg-surface-3 px-4 pb-5 pt-6"
-              style={[{ borderRadius: 0 }, hardShadow('#3FCB86', 6)]}
-            >
+            <View className="items-center gap-3 rounded-2xl border border-hairline bg-card px-4 pb-5 pt-6">
               <Pressable
                 disabled={!league.isOwner || logoBusy}
                 onPress={onChangeLogo}
-                className="h-16 w-16 items-center justify-center overflow-hidden border-2 border-white bg-red"
-                style={[{ borderRadius: 0 }, hardShadow('#0A1230', 3)]}
+                className="h-16 w-16 items-center justify-center overflow-hidden rounded-2xl border border-hairline bg-surface-2"
               >
                 {league.logoUrl ? (
                   <Image source={{ uri: league.logoUrl }} style={{ width: 60, height: 60 }} contentFit="cover" />
@@ -207,28 +200,28 @@ export default function LeagueDetail() {
                   <Ionicons name="trophy" size={30} color="#ffffff" />
                 )}
                 {league.isOwner ? (
-                  <View className="absolute bottom-0 right-0 h-5 w-5 items-center justify-center border-2 border-white bg-ink">
+                  <View className="absolute bottom-0 right-0 h-5 w-5 items-center justify-center rounded-full border border-hairline bg-ink">
                     <Ionicons name={logoBusy ? 'hourglass' : 'camera'} size={11} color="#ffffff" />
                   </View>
                 ) : null}
               </Pressable>
-              <Text numberOfLines={2} className="text-center font-display text-2xl uppercase text-white">
+              <Text numberOfLines={2} className="text-center font-display text-2xl text-white">
                 {league.name}
               </Text>
-              <Text className="font-mono-bold text-[10px] uppercase text-muted" style={{ letterSpacing: 1 }}>
+              <Text className="font-ui-semibold text-[10px] text-muted">
                 {league.memberCount} membre{league.memberCount > 1 ? 's' : ''}
                 {league.isOwner ? ' · admin' : ''}
               </Text>
               {league.isOwner ? (
                 <View className="flex-row items-center gap-3">
                   <Pressable onPress={onChangeLogo} disabled={logoBusy}>
-                    <Text className="font-mono-bold text-[10px] uppercase text-green" style={{ letterSpacing: 0.5 }}>
+                    <Text className="font-ui-semibold text-[10px] text-muted">
                       {logoBusy ? 'Import…' : league.logoUrl ? 'Changer le logo' : 'Importer un logo'}
                     </Text>
                   </Pressable>
                   {league.logoUrl ? (
                     <Pressable onPress={onRemoveLogo} disabled={logoBusy}>
-                      <Text className="font-mono-bold text-[10px] uppercase text-red" style={{ letterSpacing: 0.5 }}>
+                      <Text className="font-ui-semibold text-[10px] text-muted">
                         Retirer
                       </Text>
                     </Pressable>
@@ -237,57 +230,50 @@ export default function LeagueDetail() {
               ) : null}
 
               {/* Code d'invitation + copie */}
-              <View
-                className="w-full flex-row items-center justify-between border-2 border-white bg-ink px-3 py-2.5"
-                style={{ borderRadius: 0 }}
-              >
+              <View className="w-full flex-row items-center justify-between rounded-xl border border-hairline bg-surface-2 px-3 py-2.5">
                 <View className="flex-row items-center gap-2.5">
-                  <Text className="font-mono-bold text-[10px] uppercase" style={{ color: MUT2, letterSpacing: 1 }}>
+                  <Text className="font-ui-semibold text-[10px]" style={{ color: MUT2 }}>
                     Code
                   </Text>
-                  <Text className="font-display text-base uppercase text-white" style={{ letterSpacing: 2 }}>
+                  <Text className="font-display text-base text-white" style={{ letterSpacing: 2 }}>
                     {league.code}
                   </Text>
                 </View>
                 <Pressable
                   onPress={onCopy}
-                  className="h-8 w-8 items-center justify-center border-2 border-white bg-red"
-                  style={{ borderRadius: 0 }}
+                  className="h-8 w-8 items-center justify-center rounded-[13px] border border-hairline bg-surface-2"
                 >
                   <Ionicons name="copy-outline" size={15} color="#ffffff" />
                 </Pressable>
               </View>
 
               {/* Lien complet, sélectionnable → copie manuelle fiable partout (même hors HTTPS) */}
-              <View className="w-full border-2 border-white/30 bg-ink px-3 py-2" style={{ borderRadius: 0 }}>
-                <Text selectable numberOfLines={1} className="font-mono text-[11px] text-white/80">
+              <View className="w-full rounded-xl border border-hairline bg-surface-2 px-3 py-2">
+                <Text selectable numberOfLines={1} className="font-ui-medium text-[11px] text-muted">
                   {joinLink(league.code)}
                 </Text>
               </View>
               {shareMsg ? (
-                <Text className="text-center font-mono-bold text-[11px] uppercase text-green">{shareMsg}</Text>
+                <Text className="text-center font-ui-semibold text-[11px] text-green">{shareMsg}</Text>
               ) : null}
             </View>
 
             {/* Classement */}
             <View className="flex-row items-center gap-2 pt-1">
-              <View className="h-2.5 w-2.5 bg-red" />
-              <Text className="flex-1 font-display text-base uppercase text-white" style={{ letterSpacing: 0.5 }}>
+              <Text className="flex-1 font-display text-base text-white">
                 Classement
               </Text>
-              <Text className="font-mono text-[10px] uppercase text-muted">{league.memberCount}</Text>
+              <Text className="font-ui-medium text-[10px] text-muted">{league.memberCount}</Text>
             </View>
 
-            <View className="border-2 border-white bg-surface-3 px-3.5" style={{ borderRadius: 0 }}>
+            <View className="rounded-2xl border border-hairline bg-card px-3.5">
               {league.members.map((m, idx) => (
                 <View key={m.userId}>
-                  {idx > 0 ? <View style={{ height: 1.5, backgroundColor: '#FFFFFF1F' }} /> : null}
+                  {idx > 0 ? <View className="h-px bg-line" /> : null}
                   <View
                     className="flex-row items-center gap-2.5 py-3"
                     style={{
-                      borderLeftWidth: 3,
-                      borderLeftColor: m.isMe ? '#E5342B' : 'transparent',
-                      backgroundColor: m.isMe ? '#1B2452' : 'transparent',
+                      backgroundColor: m.isMe ? 'rgba(255,255,255,0.04)' : 'transparent',
                       paddingLeft: 6,
                     }}
                   >
@@ -297,17 +283,14 @@ export default function LeagueDetail() {
                     >
                       {idx + 1}
                     </Text>
-                    <View
-                      className="h-8 w-8 items-center justify-center overflow-hidden border-2 border-white"
-                      style={{ borderRadius: 0, backgroundColor: m.isMe ? '#E5342B' : '#23306A' }}
-                    >
+                    <View className="h-8 w-8 items-center justify-center overflow-hidden rounded-2xl border border-hairline bg-surface-2">
                       {m.avatarUrl ? (
                         <Image source={{ uri: m.avatarUrl }} style={{ width: 32, height: 32 }} />
                       ) : (
-                        <Text className="font-mono-bold text-[11px] text-white">{initials(m.username)}</Text>
+                        <Text className="font-ui-semibold text-[11px] text-white">{initials(m.username)}</Text>
                       )}
                     </View>
-                    <Text numberOfLines={1} className="flex-1 font-mono-bold text-[12px] uppercase text-white">
+                    <Text numberOfLines={1} className="flex-1 font-ui-semibold text-[12px] text-white">
                       {m.isMe ? 'Toi' : m.username}
                       {m.isOwner ? ' 👑' : ''}
                     </Text>
@@ -317,10 +300,9 @@ export default function LeagueDetail() {
                     {league.isOwner && !m.isMe ? (
                       <Pressable
                         onPress={() => kick({ leagueId: league._id, userId: m.userId })}
-                        className="h-7 w-7 items-center justify-center border-2 border-white bg-ink"
-                        style={{ borderRadius: 0 }}
+                        className="h-7 w-7 items-center justify-center rounded-[13px] border border-hairline bg-surface-2"
                       >
-                        <Ionicons name="close" size={14} color="#E5342B" />
+                        <Ionicons name="close" size={14} color="#A1A1AA" />
                       </Pressable>
                     ) : null}
                   </View>
@@ -329,8 +311,8 @@ export default function LeagueDetail() {
             </View>
 
             <Text
-              className="px-2 pt-1 text-center font-mono-bold text-[9px] uppercase"
-              style={{ color: MUT2, letterSpacing: 0.5, lineHeight: 14 }}
+              className="px-2 pt-1 text-center font-ui-semibold text-[9px]"
+              style={{ color: MUT2, lineHeight: 14 }}
             >
               Gains comptés sur tes paris réglés depuis ton entrée
             </Text>

@@ -21,14 +21,18 @@ export function Button({
     <Pressable
       onPress={onPress}
       disabled={off}
-      className={`w-full flex-row items-center justify-center rounded-2xl px-5 py-4 ${
-        isPrimary ? 'bg-red' : 'border border-white/15 bg-white/5'
+      className={`w-full flex-row items-center justify-center rounded-xl px-5 py-4 ${
+        isPrimary ? 'bg-paper' : 'border border-hairline bg-white/5'
       } ${off ? 'opacity-60' : ''}`}
     >
       {loading ? (
-        <ActivityIndicator color="#ffffff" />
+        <ActivityIndicator color={isPrimary ? '#0A0A0B' : '#ffffff'} />
       ) : (
-        <Text className="font-ui-bold text-base text-white">{label}</Text>
+        <Text
+          className={`font-ui-semibold text-base ${isPrimary ? 'text-ink' : 'text-white'}`}
+        >
+          {label}
+        </Text>
       )}
     </Pressable>
   );

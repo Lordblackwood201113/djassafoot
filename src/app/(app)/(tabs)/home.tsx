@@ -12,15 +12,7 @@ import { useStoreUser } from '@/hooks/useStoreUser';
 
 function SectionLabel({ title }: { title: string }) {
   return (
-    <View className="gap-1.5">
-      <View className="flex-row items-center gap-2.5">
-        <View style={{ width: 10, height: 10 }} className="bg-red" />
-        <Text className="font-display text-lg uppercase text-white" style={{ letterSpacing: 0.5 }}>
-          {title}
-        </Text>
-      </View>
-      <View style={{ height: 3, width: 44, backgroundColor: '#E5342B' }} />
-    </View>
+    <Text className="font-display text-lg text-white">{title}</Text>
   );
 }
 
@@ -47,20 +39,18 @@ export default function Home() {
         >
           {featured ? (
             <View className="gap-3">
-              <SectionLabel title="À LA UNE" />
+              <SectionLabel title="À la une" />
               <HeroMatch match={featured} />
             </View>
           ) : null}
 
           {cards.length > 0 ? (
             <View className="gap-3">
-              <SectionLabel title="PROCHAINS MATCHS" />
-              <BrutalBox shadow="#0A1230" offset={5} borderWidth={2} className="bg-surface-3">
+              <SectionLabel title="Prochains matchs" />
+              <BrutalBox className="bg-card">
                 {cards.map((m, i) => (
                   <Fragment key={m._id}>
-                    {i > 0 ? (
-                      <View style={{ height: 2, backgroundColor: '#FFFFFF' }} />
-                    ) : null}
+                    {i > 0 ? <View className="h-px bg-line" /> : null}
                     <MatchCard match={m} />
                   </Fragment>
                 ))}
@@ -69,8 +59,8 @@ export default function Home() {
           ) : null}
 
           {!featured && upcoming !== undefined ? (
-            <Text className="mt-8 text-center font-mono text-sm uppercase text-muted">
-              AUCUN MATCH À VENIR POUR LE MOMENT.
+            <Text className="mt-8 text-center font-ui-medium text-sm text-muted">
+              Aucun match à venir pour le moment.
             </Text>
           ) : null}
         </ScrollView>

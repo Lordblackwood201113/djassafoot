@@ -16,7 +16,7 @@ const SEGS: Seg[] = [
 const N = SEGS.length;
 
 function Bars({ seg, on }: { seg: Seg; on: boolean }) {
-  const color = on ? '#15205A' : '#7C86B8';
+  const color = on ? '#0A0A0B' : '#A1A1AA';
   if (seg.trophy) return <Ionicons name="trophy" size={20} color={color} />;
   const h = seg.thick ? 3 : 2;
   const w = seg.thick ? 19 : 16;
@@ -64,7 +64,7 @@ export function RoundSelector({
       <View className="h-[58px] justify-center overflow-hidden rounded-2xl bg-surface">
         {/* Fenêtre blanche glissante */}
         <View
-          style={{ position: 'absolute', top: 6, bottom: 6, left: pct(start), width: pct(2), backgroundColor: '#FFFFFF', borderRadius: 13 }}
+          style={{ position: 'absolute', top: 6, bottom: 6, left: pct(start), width: pct(2), backgroundColor: '#F5F5F4', borderRadius: 13 }}
         />
         {/* Icônes */}
         <View className="flex-row">
@@ -79,13 +79,13 @@ export function RoundSelector({
           onPress={() => step(-1)}
           style={{ position: 'absolute', top: 0, bottom: 0, left: pct(start), width: 26, alignItems: 'center', justifyContent: 'center' }}
         >
-          <Ionicons name="chevron-back" size={15} color="#15205A" />
+          <Ionicons name="chevron-back" size={15} color="#0A0A0B" />
         </Pressable>
         <Pressable
           onPress={() => step(1)}
           style={{ position: 'absolute', top: 0, bottom: 0, right: pct(N - (start + 2)), width: 26, alignItems: 'center', justifyContent: 'center' }}
         >
-          <Ionicons name="chevron-forward" size={15} color="#15205A" />
+          <Ionicons name="chevron-forward" size={15} color="#0A0A0B" />
         </Pressable>
       </View>
     </View>

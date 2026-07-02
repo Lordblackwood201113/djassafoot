@@ -12,17 +12,16 @@ import { BracketTree, type Pairing, type TeamSlot } from '@/components/bracket/B
 import { GroupStandings } from '@/components/bracket/GroupStandings';
 import { BrutalSegment } from '@/components/brutal/Segment';
 import { ScreenBackground } from '@/components/ScreenBackground';
-import { hardShadow } from '@/lib/brutal';
 import { WORLD_CUP } from '@/lib/competitions';
 import { formatDayLong, formatTime } from '@/lib/format';
 import { frTeam } from '@/lib/teamNames';
 import { R32 } from '@/lib/wc2026Bracket';
 
-// Sélecteur de tours brutaliste : cellules carrées bordées, actif = rouge.
+// Sélecteur de tours : segments pills.
 const ROUND_OPTIONS = [
   { key: 'PG', label: 'PG' },
-  { key: '16', label: '16E' },
-  { key: '8', label: '8E' },
+  { key: '16', label: '16e' },
+  { key: '8', label: '8e' },
   { key: 'QF', label: 'QF' },
   { key: 'DF', label: 'DF' },
   { key: 'F', label: 'F' },
@@ -146,14 +145,13 @@ export default function Bracket() {
         <View className="flex-row items-center justify-between px-5 pb-4">
           <Pressable
             onPress={() => (router.canGoBack() ? router.back() : router.replace('/matches'))}
-            className="h-10 w-10 items-center justify-center border-2 border-white bg-ink"
-            style={{ borderRadius: 0, ...hardShadow('#E5342B', 4) }}
+            className="h-10 w-10 items-center justify-center rounded-[13px] border border-hairline bg-surface-2"
           >
             <Ionicons name="close" size={20} color="#ffffff" />
           </Pressable>
           <View className="flex-row items-center gap-2">
             <Image source={WORLD_CUP.logo} style={{ width: 22, height: 22 }} contentFit="contain" />
-            <Text className="font-display text-[15px] uppercase text-white" style={{ letterSpacing: 0.5 }}>
+            <Text className="font-display text-[15px] text-white">
               Coupe du Monde 2026
             </Text>
           </View>
@@ -172,7 +170,7 @@ export default function Bracket() {
             {standings && standings.length > 0 ? (
               <GroupStandings rows={standings} matches={matches ?? []} />
             ) : (
-              <Text className="mt-16 text-center font-mono text-xs uppercase text-muted">
+              <Text className="mt-16 text-center font-ui-medium text-xs text-muted">
                 Chargement des classements…
               </Text>
             )}

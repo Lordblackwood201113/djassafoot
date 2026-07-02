@@ -18,15 +18,15 @@ function icon(ev: TimelineEvent): { name: keyof typeof Ionicons.glyphMap; color:
   const d = (ev.detail ?? '').toLowerCase();
   switch (ev.type) {
     case 'goal':
-      return { name: 'football', color: '#3FCB86' };
+      return { name: 'football', color: '#6FA287' };
     case 'card':
-      return { name: 'square', color: d.includes('red') ? '#E5342B' : '#FFD24A' };
+      return { name: 'square', color: d.includes('red') ? '#E5484D' : '#FFD24A' };
     case 'subst':
-      return { name: 'swap-horizontal', color: '#9AA4CC' };
+      return { name: 'swap-horizontal', color: '#A1A1AA' };
     case 'var':
-      return { name: 'videocam', color: '#9AA4CC' };
+      return { name: 'videocam', color: '#A1A1AA' };
     default:
-      return { name: 'ellipse', color: '#9AA4CC' };
+      return { name: 'ellipse', color: '#A1A1AA' };
   }
 }
 
@@ -42,28 +42,28 @@ function Row({ ev }: { ev: TimelineEvent }) {
   const ic = icon(ev);
   const label = ev.detail || TYPE_LABEL[ev.type] || 'Événement';
   return (
-    <View className="flex-row items-center gap-3 border-t-2 border-white/10 py-2.5">
+    <View className="flex-row items-center gap-3 border-t border-line py-2.5">
       <View className="w-9 items-center">
         <Text className="font-display text-[14px] text-white">{ev.minute != null ? `${ev.minute}'` : '—'}</Text>
       </View>
       <View
-        className="h-8 w-8 items-center justify-center border-2 bg-ink"
-        style={{ borderRadius: 0, borderColor: ic.color }}
+        className="h-8 w-8 items-center justify-center rounded-[13px] border bg-surface-2"
+        style={{ borderColor: ic.color }}
       >
         <Ionicons name={ic.name} size={16} color={ic.color} />
       </View>
       <View className="flex-1">
-        <Text numberOfLines={1} className="font-mono-bold text-[13px] uppercase text-white">
+        <Text numberOfLines={1} className="font-ui-semibold text-[13px] text-white">
           {ev.player ?? label}
         </Text>
-        <Text numberOfLines={1} className="font-mono text-[10px] uppercase text-muted">
+        <Text numberOfLines={1} className="font-ui-medium text-[10px] text-muted">
           {ev.type === 'goal' && ev.assist ? `${label} · passe ${ev.assist}` : label}
         </Text>
       </View>
-      {/* Indicateur d'équipe : domicile = rouge à gauche implicite via l'ordre, ici un carré coloré */}
+      {/* Indicateur d'équipe : domicile = point plein, extérieur = point discret */}
       <View
-        className="h-2.5 w-2.5"
-        style={{ backgroundColor: ev.isHome ? '#E5342B' : '#FFFFFF' }}
+        className="h-2.5 w-2.5 rounded-full"
+        style={{ backgroundColor: ev.isHome ? '#F5F5F4' : '#6B7280' }}
       />
     </View>
   );
@@ -83,12 +83,12 @@ export function TimelineView({
       {/* Légende domicile / extérieur */}
       <View className="mb-2 flex-row items-center justify-between px-1">
         <View className="flex-row items-center gap-1.5">
-          <View className="h-2.5 w-2.5 bg-red" />
-          <Text className="font-mono text-[10px] uppercase text-muted">{frTeam(homeName)}</Text>
+          <View className="h-2.5 w-2.5 rounded-full bg-paper" />
+          <Text className="font-ui-medium text-[10px] text-muted">{frTeam(homeName)}</Text>
         </View>
         <View className="flex-row items-center gap-1.5">
-          <Text className="font-mono text-[10px] uppercase text-muted">{frTeam(awayName)}</Text>
-          <View className="h-2.5 w-2.5 bg-white" />
+          <Text className="font-ui-medium text-[10px] text-muted">{frTeam(awayName)}</Text>
+          <View className="h-2.5 w-2.5 rounded-full bg-muted-2" />
         </View>
       </View>
       {timeline.map((ev, i) => (

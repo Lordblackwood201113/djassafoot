@@ -19,10 +19,12 @@ export function SegmentControl({
           <Pressable
             key={s.key}
             onPress={() => onChange(s.key)}
-            className={`flex-1 items-center rounded-2xl py-2.5 ${active ? 'bg-red' : 'bg-surface'}`}
+            className={`flex-1 items-center rounded-full py-2.5 ${
+              active ? 'bg-paper' : 'border border-hairline bg-surface'
+            }`}
           >
             <Text
-              className={`text-sm ${active ? 'font-ui-bold text-white' : 'font-ui-medium text-muted'}`}
+              className={`text-sm ${active ? 'font-ui-semibold text-ink' : 'font-ui-medium text-muted'}`}
             >
               {s.label}
             </Text>

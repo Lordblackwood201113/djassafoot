@@ -14,15 +14,14 @@ import { BrutalBox } from '@/components/brutal/BrutalBox';
 import { BrutalButton } from '@/components/brutal/BrutalButton';
 import { BrutalSlider } from '@/components/brutal/BrutalSlider';
 import { EVENTS, track } from '@/lib/analytics';
-import { hardShadow } from '@/lib/brutal';
 import { frTeam } from '@/lib/teamNames';
 import { usePronoDraft } from '@/store/pronoDraftStore';
 
 const MARKET_LABEL: Record<string, string> = {
-  result_1x2: 'RÉSULTAT',
-  over_under_2_5: 'NOMBRE DE BUTS',
-  btts: 'LES DEUX MARQUENT',
-  exact_score: 'SCORE EXACT',
+  result_1x2: 'Résultat',
+  over_under_2_5: 'Nombre de buts',
+  btts: 'Les deux marquent',
+  exact_score: 'Score exact',
 };
 
 export default function BetSlip() {
@@ -80,12 +79,11 @@ export default function BetSlip() {
         <View className="flex-row items-center justify-between px-4 pb-2">
           <Pressable
             onPress={() => (router.canGoBack() ? router.back() : router.replace('/matches'))}
-            className="h-10 w-10 items-center justify-center rounded-none border-2 border-white bg-surface-3"
-            style={hardShadow('#E5342B', 3)}
+            className="h-10 w-10 items-center justify-center rounded-[13px] border border-hairline bg-surface-2"
           >
             <Ionicons name="chevron-back" size={22} color="#ffffff" />
           </Pressable>
-          <Text className="font-display text-lg uppercase text-white" style={{ letterSpacing: 0.5 }}>
+          <Text className="font-display text-lg text-white">
             Mon pari
           </Text>
           <FlameBalance />
@@ -93,8 +91,7 @@ export default function BetSlip() {
 
         {match ? (
           <View className="flex-row items-center justify-center gap-2 px-5 pb-1">
-            <View className="h-2.5 w-2.5 bg-red" />
-            <Text className="text-center font-mono-bold text-[12px] uppercase text-muted" style={{ letterSpacing: 0.5 }}>
+            <Text className="text-center font-ui-semibold text-[12px] text-muted">
               {frTeam(match.homeName)} — {frTeam(match.awayName)}
             </Text>
           </View>
@@ -102,29 +99,29 @@ export default function BetSlip() {
 
         <ScrollView className="px-5" contentContainerStyle={{ paddingBottom: 16 }} showsVerticalScrollIndicator={false}>
           {/* Sélections */}
-          <BrutalBox shadow="#E5342B" offset={6} borderWidth={2} className="mt-3 bg-surface-3 px-4 py-1">
+          <BrutalBox shadow={false} borderWidth={1} className="mt-3 rounded-2xl border-hairline bg-card px-4 py-1">
             {legsArr.length === 0 ? (
-              <Text className="py-6 text-center font-mono text-[12px] uppercase text-muted">
+              <Text className="py-6 text-center font-ui-medium text-[12px] text-muted">
                 Aucune sélection.
               </Text>
             ) : (
               legsArr.map((l, i) => (
                 <View
                   key={l.market}
-                  className={`flex-row items-center py-3 ${i > 0 ? 'border-t-2 border-white/20' : ''}`}
+                  className={`flex-row items-center py-3 ${i > 0 ? 'border-t border-line' : ''}`}
                 >
                   <View className="flex-1">
-                    <Text className="font-mono text-[10px] uppercase text-muted" style={{ letterSpacing: 1 }}>
+                    <Text className="font-ui-medium text-[10px] text-muted">
                       {MARKET_LABEL[l.market]}
                     </Text>
-                    <Text className="mt-1 font-mono-bold text-[13px] uppercase text-white">{l.label}</Text>
+                    <Text className="mt-1 font-ui-semibold text-[13px] text-white">{l.label}</Text>
                   </View>
                   <Text className="mr-3 font-display text-[15px] text-white">{l.odds.toFixed(2)}</Text>
                   <Pressable
                     onPress={() => removeLeg(l.market)}
-                    className="h-7 w-7 items-center justify-center rounded-none border-2 border-white bg-ink"
+                    className="h-7 w-7 items-center justify-center rounded-[13px] border border-hairline bg-surface-2"
                   >
-                    <Ionicons name="close" size={14} color="#E5342B" />
+                    <Ionicons name="close" size={14} color="#A1A1AA" />
                   </Pressable>
                 </View>
               ))
@@ -134,21 +131,20 @@ export default function BetSlip() {
           {/* Cote totale */}
           <View className="mt-4 flex-row items-center justify-between px-1">
             <View className="flex-row items-center gap-2">
-              <View className="h-2.5 w-2.5 bg-red" />
-              <Text className="font-mono-bold text-[12px] uppercase text-muted" style={{ letterSpacing: 0.5 }}>
+              <Text className="font-ui-semibold text-[12px] text-muted">
                 Cote totale
               </Text>
             </View>
-            <Text className="font-display text-2xl text-red">{totalOdds.toFixed(2)}</Text>
+            <Text className="font-display text-2xl text-white">{totalOdds.toFixed(2)}</Text>
           </View>
 
           {/* Mise — libre + slider (jetons entiers) */}
-          <BrutalBox shadow={false} borderWidth={2} className="mt-4 bg-surface-3 px-4 py-4">
+          <BrutalBox shadow={false} borderWidth={1} className="mt-4 rounded-2xl border-hairline bg-card px-4 py-4">
             <View className="flex-row items-center justify-between">
-              <Text className="font-mono-bold text-[11px] uppercase text-muted" style={{ letterSpacing: 1 }}>
+              <Text className="font-ui-semibold text-[11px] text-muted">
                 Ta mise
               </Text>
-              <Text className="font-mono text-[11px] uppercase text-muted">Solde : 🪙 {balance}</Text>
+              <Text className="font-ui-medium text-[11px] text-muted">Solde : 🪙 {balance}</Text>
             </View>
 
             <View className="mt-2 flex-row items-center gap-2">
@@ -161,16 +157,15 @@ export default function BetSlip() {
                 }}
                 keyboardType="number-pad"
                 placeholder="0"
-                placeholderTextColor="#6B77A8"
-                className="flex-1 border-2 border-white bg-ink px-3 py-2 font-display text-3xl text-white"
-                style={{ borderRadius: 0, minWidth: 0 }}
+                placeholderTextColor="#6B7280"
+                className="flex-1 rounded-xl border border-hairline bg-surface-2 px-3 py-2 font-display text-3xl text-white"
+                style={{ minWidth: 0 }}
               />
               <Pressable
                 onPress={() => setStake(balance)}
-                className="items-center justify-center border-2 border-white bg-ink px-4 py-3"
-                style={{ borderRadius: 0 }}
+                className="items-center justify-center rounded-xl border border-hairline bg-surface-2 px-4 py-3"
               >
-                <Text className="font-mono-bold text-[12px] uppercase text-white">Max</Text>
+                <Text className="font-ui-semibold text-[12px] text-white">Max</Text>
               </Pressable>
             </View>
 
@@ -180,20 +175,20 @@ export default function BetSlip() {
           </BrutalBox>
 
           {/* Gain potentiel */}
-          <BrutalBox shadow="#3FCB86" offset={6} borderWidth={2} className="mt-4 flex-row items-center justify-between bg-surface-3 px-4 py-3">
-            <Text className="font-mono-bold text-[12px] uppercase text-white" style={{ letterSpacing: 0.5 }}>
+          <BrutalBox shadow={false} borderWidth={1} className="mt-4 flex-row items-center justify-between rounded-2xl border-hairline bg-card px-4 py-3">
+            <Text className="font-ui-semibold text-[12px] text-white">
               Gain potentiel
             </Text>
             <Text className="font-display text-2xl text-green">🪙 {payout}</Text>
           </BrutalBox>
 
           {!legality.ok && legsArr.length > 0 ? (
-            <Text className="mt-4 text-center font-mono-bold text-[12px] uppercase text-red">
+            <Text className="mt-4 text-center font-ui-semibold text-[12px] text-red">
               {legality.reason}
             </Text>
           ) : null}
           {error ? (
-            <Text className="mt-4 text-center font-mono-bold text-[12px] uppercase text-red">{error}</Text>
+            <Text className="mt-4 text-center font-ui-semibold text-[12px] text-red">{error}</Text>
           ) : null}
         </ScrollView>
 

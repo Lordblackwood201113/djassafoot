@@ -28,20 +28,20 @@ export function CompetitionSwitcher() {
 
       <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
         <Pressable className="flex-1 bg-black/50" onPress={() => setOpen(false)}>
-          <View className="absolute right-5 top-28 w-64 rounded-2xl bg-surface p-2">
+          <View className="absolute right-5 top-28 w-64 rounded-2xl border border-hairline bg-surface p-2">
             <Text className="px-3 pb-1 pt-2 font-ui-medium text-xs text-muted">Compétitions</Text>
             {COMPETITIONS.map((c) => (
               <Pressable
                 key={c.slug}
                 onPress={() => select(c.slug, c.available)}
-                className="flex-row items-center gap-3 rounded-xl px-3 py-2.5"
+                className={`flex-row items-center gap-3 rounded-xl px-3 py-2.5 ${c.available ? 'bg-white/5' : ''}`}
               >
                 <Image source={c.logo} style={{ width: 26, height: 26 }} contentFit="contain" />
                 <Text className="flex-1 font-ui-medium text-[15px] text-white">{c.short}</Text>
                 {c.available ? (
-                  <Ionicons name="checkmark" size={18} color="#E5342B" />
+                  <Ionicons name="checkmark" size={18} color="#F5F5F4" />
                 ) : (
-                  <Ionicons name="lock-closed" size={13} color="#9AA4CC" />
+                  <Ionicons name="lock-closed" size={13} color="#6B7280" />
                 )}
               </Pressable>
             ))}

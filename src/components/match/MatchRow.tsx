@@ -6,7 +6,7 @@ import { Flag } from '@/components/brutal/Flag';
 import { formatDayLong, formatTime, roundDetail } from '@/lib/format';
 import { frTeam } from '@/lib/teamNames';
 
-// Ligne de match brutaliste : [drapeau nom] · heure/score · [nom drapeau] en mono, filet épais en bas.
+// Ligne de match : [drapeau nom] · heure/score · [nom drapeau], filet hairline en bas.
 export function MatchRow({ match }: { match: Doc<'matches'> }) {
   const router = useRouter();
   const live = match.status === 'live';
@@ -16,9 +16,9 @@ export function MatchRow({ match }: { match: Doc<'matches'> }) {
   return (
     <Pressable
       onPress={() => router.push(`/match/${match._id}`)}
-      className="border-b-2 border-white/20 px-4 py-3.5"
+      className="border-b border-line px-4 py-3.5"
     >
-      <Text className="text-center font-mono text-[10px] uppercase text-muted" style={{ letterSpacing: 0.5 }}>
+      <Text className="text-center font-ui-medium text-[10px] text-muted">
         {formatDayLong(match.kickoff)}
         {roundDetail(match.round) ? ` · ${roundDetail(match.round)}` : ''}
       </Text>
@@ -27,7 +27,7 @@ export function MatchRow({ match }: { match: Doc<'matches'> }) {
         <View className="flex-1 flex-row items-center justify-end gap-2.5">
           <Text
             numberOfLines={1}
-            className="shrink font-mono-bold text-[14px] uppercase text-white"
+            className="shrink font-ui-semibold text-[14px] text-white"
           >
             {frTeam(match.homeName)}
           </Text>
@@ -40,15 +40,11 @@ export function MatchRow({ match }: { match: Doc<'matches'> }) {
               <Text className="font-display text-[20px] text-white">
                 {match.homeScore ?? 0}-{match.awayScore ?? 0}
               </Text>
-              <View
-                className={live ? 'bg-red px-1.5 py-0.5' : undefined}
-                style={{ borderRadius: 0 }}
-              >
+              <View className={live ? 'rounded-full bg-red px-1.5 py-0.5' : undefined}>
                 <Text
-                  className={`font-mono-bold text-[10px] uppercase ${live ? 'text-white' : 'text-muted'}`}
-                  style={{ letterSpacing: 0.5 }}
+                  className={`font-ui-semibold text-[10px] ${live ? 'text-white' : 'text-muted'}`}
                 >
-                  {live ? (match.minute ? `${match.minute}'` : 'LIVE') : 'TERMINÉ'}
+                  {live ? (match.minute ? `${match.minute}'` : 'Live') : 'Terminé'}
                 </Text>
               </View>
             </>
@@ -63,7 +59,7 @@ export function MatchRow({ match }: { match: Doc<'matches'> }) {
           <Flag name={match.awayName} size={26} />
           <Text
             numberOfLines={1}
-            className="shrink font-mono-bold text-[14px] uppercase text-white"
+            className="shrink font-ui-semibold text-[14px] text-white"
           >
             {frTeam(match.awayName)}
           </Text>

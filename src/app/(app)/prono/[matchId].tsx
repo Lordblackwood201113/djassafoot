@@ -13,7 +13,6 @@ import { BrutalBox } from '@/components/brutal/BrutalBox';
 import { BrutalButton } from '@/components/brutal/BrutalButton';
 import { Flag } from '@/components/brutal/Flag';
 import { ScreenBackground } from '@/components/ScreenBackground';
-import { hardShadow } from '@/lib/brutal';
 import { formatDay, formatTime } from '@/lib/format';
 import { frTeam } from '@/lib/teamNames';
 import { usePronoDraft, type Leg, type Market } from '@/store/pronoDraftStore';
@@ -35,30 +34,27 @@ function OddButton({
     <Pressable
       onPress={disabled ? undefined : onPress}
       disabled={disabled}
-      style={[
-        {
-          flex: 1,
-          alignItems: 'center',
-          borderRadius: 0,
-          borderWidth: 2,
-          borderColor: disabled ? '#3A4468' : '#FFFFFF',
-          paddingVertical: 12,
-          backgroundColor: selected ? '#E5342B' : '#131C3F',
-          opacity: disabled ? 0.4 : 1,
-        },
-        disabled ? null : selected ? hardShadow('#0A1230', 4) : hardShadow('#E5342B', 4),
-      ]}
+      style={{
+        flex: 1,
+        alignItems: 'center',
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: selected ? '#F5F5F4' : 'rgba(255,255,255,0.1)',
+        paddingVertical: 12,
+        backgroundColor: selected ? '#F5F5F4' : '#151518',
+        opacity: disabled ? 0.4 : 1,
+      }}
     >
       <Text
         numberOfLines={1}
-        className="px-1 font-mono-bold text-[12px] uppercase text-white"
-        style={{ letterSpacing: 0.3 }}
+        className="px-1 font-ui-semibold text-[12px]"
+        style={{ color: selected ? '#0A0A0B' : '#FFFFFF' }}
       >
         {label}
       </Text>
       <Text
         className="mt-1 font-display text-[16px]"
-        style={{ color: selected ? '#FFFFFF' : '#E5342B', letterSpacing: 0.5 }}
+        style={{ color: selected ? '#0A0A0B' : '#FFFFFF' }}
       >
         {odd.toFixed(2)}
       </Text>
@@ -70,19 +66,12 @@ function SectionHead({ title, tag }: { title: string; tag?: string }) {
   return (
     <View className="mb-2 mt-6 flex-row items-center justify-between">
       <View className="flex-row items-center gap-2">
-        <View style={{ width: 10, height: 10, backgroundColor: '#E5342B' }} />
-        <Text
-          className="font-display text-[15px] uppercase text-white"
-          style={{ letterSpacing: 0.5 }}
-        >
+        <Text className="font-display text-[15px] text-white">
           {title}
         </Text>
       </View>
       {tag ? (
-        <Text
-          className="font-mono-bold text-[11px] uppercase text-muted"
-          style={{ letterSpacing: 0.5 }}
-        >
+        <Text className="font-ui-semibold text-[11px] text-muted">
           {tag}
         </Text>
       ) : null}
@@ -100,18 +89,15 @@ function Stepper({ value, onChange }: { value: number; onChange: (n: number) => 
           width: 40,
           alignItems: 'center',
           justifyContent: 'center',
-          borderRadius: 0,
-          borderWidth: 2,
-          borderColor: '#FFFFFF',
-          backgroundColor: '#0A1230',
+          borderRadius: 13,
+          borderWidth: 1,
+          borderColor: 'rgba(255,255,255,0.1)',
+          backgroundColor: '#1C1C20',
         }}
       >
         <Ionicons name="remove" size={18} color="#ffffff" />
       </Pressable>
-      <Text
-        className="w-8 text-center font-display text-xl text-white"
-        style={{ letterSpacing: 0.5 }}
-      >
+      <Text className="w-8 text-center font-display text-xl text-white">
         {value}
       </Text>
       <Pressable
@@ -121,10 +107,10 @@ function Stepper({ value, onChange }: { value: number; onChange: (n: number) => 
           width: 40,
           alignItems: 'center',
           justifyContent: 'center',
-          borderRadius: 0,
-          borderWidth: 2,
-          borderColor: '#FFFFFF',
-          backgroundColor: '#0A1230',
+          borderRadius: 13,
+          borderWidth: 1,
+          borderColor: 'rgba(255,255,255,0.1)',
+          backgroundColor: '#1C1C20',
         }}
       >
         <Ionicons name="add" size={18} color="#ffffff" />
@@ -194,38 +180,28 @@ export default function PronoScreen() {
         <View className="flex-row items-center gap-3 px-4 pb-3">
           <Pressable
             onPress={() => (router.canGoBack() ? router.back() : router.replace('/matches'))}
-            style={[
-              {
-                height: 40,
-                width: 40,
-                alignItems: 'center',
-                justifyContent: 'center',
-                borderRadius: 0,
-                borderWidth: 2,
-                borderColor: '#FFFFFF',
-                backgroundColor: '#0A1230',
-              },
-              hardShadow('#E5342B', 4),
-            ]}
+            style={{
+              height: 40,
+              width: 40,
+              alignItems: 'center',
+              justifyContent: 'center',
+              borderRadius: 13,
+              borderWidth: 1,
+              borderColor: 'rgba(255,255,255,0.1)',
+              backgroundColor: '#1C1C20',
+            }}
           >
             <Ionicons name="close" size={20} color="#ffffff" />
           </Pressable>
           <View className="flex-1">
-            <Text
-              className="font-display text-base uppercase text-white"
-              style={{ letterSpacing: 1 }}
-            >
+            <Text className="font-display text-base text-white">
               Mon pronostic
             </Text>
-            <View style={{ marginTop: 4, height: 3, width: 44, backgroundColor: '#E5342B' }} />
           </View>
         </View>
 
         {!match || !odds ? (
-          <Text
-            className="mt-20 text-center font-mono uppercase text-sm text-muted"
-            style={{ letterSpacing: 1 }}
-          >
+          <Text className="mt-20 text-center font-ui-medium text-sm text-muted">
             Chargement…
           </Text>
         ) : (
@@ -235,31 +211,28 @@ export default function PronoScreen() {
             showsVerticalScrollIndicator={false}
           >
             {/* Carte match */}
-            <BrutalBox shadow="#E5342B" offset={6} borderWidth={2} className="flex-row items-center bg-surface-3 px-4 py-3">
+            <BrutalBox shadow={false} borderWidth={1} className="flex-row items-center rounded-2xl bg-card px-4 py-3">
               <View className="flex-1 flex-row items-center gap-2">
                 <Flag name={match.homeName} size={26} />
                 <Text
                   numberOfLines={1}
-                  className="flex-shrink font-mono-bold text-[13px] uppercase text-white"
+                  className="flex-shrink font-ui-semibold text-[13px] text-white"
                 >
                   {home}
                 </Text>
               </View>
               <View className="items-center px-2">
-                <Text
-                  className="font-display text-[16px] text-white"
-                  style={{ letterSpacing: 0.5 }}
-                >
+                <Text className="font-display text-[16px] text-white">
                   {formatTime(match.kickoff)}
                 </Text>
-                <Text className="font-mono text-[10px] uppercase text-muted">
+                <Text className="font-ui-medium text-[10px] text-muted">
                   {formatDay(match.kickoff)}
                 </Text>
               </View>
               <View className="flex-1 flex-row items-center justify-end gap-2">
                 <Text
                   numberOfLines={1}
-                  className="flex-shrink text-right font-mono-bold text-[13px] uppercase text-white"
+                  className="flex-shrink text-right font-ui-semibold text-[13px] text-white"
                 >
                   {away}
                 </Text>
@@ -268,10 +241,7 @@ export default function PronoScreen() {
             </BrutalBox>
 
             {!ready ? (
-              <Text
-                className="mt-8 text-center font-mono uppercase text-sm text-muted"
-                style={{ letterSpacing: 0.5 }}
-              >
+              <Text className="mt-8 text-center font-ui-medium text-sm text-muted">
                 Les pronos sont fermés (match commencé ou terminé).
               </Text>
             ) : (
@@ -346,12 +316,9 @@ export default function PronoScreen() {
                 </View>
 
                 <SectionHead title="Score exact" tag="optionnel" />
-                <BrutalBox shadow="#E5342B" offset={5} borderWidth={2} className="flex-row items-center justify-between bg-surface-3 px-4 py-3">
+                <BrutalBox shadow={false} borderWidth={1} className="flex-row items-center justify-between rounded-2xl bg-card px-4 py-3">
                   <Stepper value={hg} onChange={(n) => updateExact(n, ag)} />
-                  <Text
-                    className="font-display text-lg text-muted"
-                    style={{ letterSpacing: 1 }}
-                  >
+                  <Text className="font-display text-lg text-muted">
                     :
                   </Text>
                   <Stepper value={ag} onChange={(n) => updateExact(hg, n)} />
@@ -370,27 +337,27 @@ export default function PronoScreen() {
                                   odds: exactOdd,
                                 })
                     }
-                    style={[
-                      {
-                        alignItems: 'center',
-                        borderRadius: 0,
-                        borderWidth: 2,
-                        borderColor: exactDisabled ? '#3A4468' : '#FFFFFF',
-                        paddingHorizontal: 12,
-                        paddingVertical: 8,
-                        backgroundColor: exactOn ? '#E5342B' : '#0A1230',
-                        opacity: exactDisabled ? 0.4 : 1,
-                      },
-                      exactDisabled ? null : hardShadow(exactOn ? '#0A1230' : '#E5342B', 3),
-                    ]}
+                    style={{
+                      alignItems: 'center',
+                      borderRadius: 12,
+                      borderWidth: 1,
+                      borderColor: exactOn ? '#F5F5F4' : 'rgba(255,255,255,0.1)',
+                      paddingHorizontal: 12,
+                      paddingVertical: 8,
+                      backgroundColor: exactOn ? '#F5F5F4' : '#1C1C20',
+                      opacity: exactDisabled ? 0.4 : 1,
+                    }}
                   >
                     <Text
-                      className="font-display text-[15px] text-white"
-                      style={{ letterSpacing: 0.5 }}
+                      className="font-display text-[15px]"
+                      style={{ color: exactOn ? '#0A0A0B' : '#FFFFFF' }}
                     >
                       {exactOdd.toFixed(2)}
                     </Text>
-                    <Text className="font-mono text-[9px] uppercase text-white">
+                    <Text
+                      className="font-ui-medium text-[9px]"
+                      style={{ color: exactOn ? '#0A0A0B' : '#FFFFFF' }}
+                    >
                       {exactOn ? 'Retirer' : 'Ajouter'}
                     </Text>
                   </Pressable>
@@ -398,22 +365,22 @@ export default function PronoScreen() {
 
                 {/* Buteur — Phase ultérieure (besoin des effectifs) */}
                 <SectionHead title="Buteur du match" tag="bientôt" />
-                <BrutalBox shadow={false} borderWidth={2} className="flex-row items-center gap-3 bg-surface-3 px-4 py-3 opacity-60">
+                <BrutalBox shadow={false} borderWidth={1} className="flex-row items-center gap-3 rounded-2xl bg-card px-4 py-3 opacity-60">
                   <View
                     style={{
                       height: 40,
                       width: 40,
                       alignItems: 'center',
                       justifyContent: 'center',
-                      borderRadius: 0,
-                      borderWidth: 2,
-                      borderColor: '#9AA4CC',
-                      backgroundColor: '#0A1230',
+                      borderRadius: 13,
+                      borderWidth: 1,
+                      borderColor: 'rgba(255,255,255,0.1)',
+                      backgroundColor: '#1C1C20',
                     }}
                   >
-                    <Ionicons name="football-outline" size={18} color="#9AA4CC" />
+                    <Ionicons name="football-outline" size={18} color="#A1A1AA" />
                   </View>
-                  <Text className="flex-1 font-mono-bold text-[12px] uppercase text-muted">
+                  <Text className="flex-1 font-ui-semibold text-[12px] text-muted">
                     Le choix du buteur arrive bientôt
                   </Text>
                 </BrutalBox>
@@ -423,10 +390,7 @@ export default function PronoScreen() {
         )}
 
         {ready ? (
-          <View
-            className="px-5 pb-9 pt-4"
-            style={{ borderTopWidth: 2, borderTopColor: '#FFFFFF' }}
-          >
+          <View className="border-t border-line px-5 pb-9 pt-4">
             <BrutalButton
               variant={selectedCount === 0 || !legality.ok ? 'ghost' : 'primary'}
               disabled={selectedCount === 0 || !legality.ok}

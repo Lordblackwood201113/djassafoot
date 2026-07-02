@@ -11,7 +11,7 @@ export function Flag({ name, size = 26 }: { name?: string | null; size?: number 
       {url ? (
         <Image source={{ uri: url }} style={{ width: size, height: size }} contentFit="contain" />
       ) : (
-        <View style={{ width: size, height: size, backgroundColor: '#232F66' }} />
+        <View style={{ width: size, height: size, borderRadius: 8, backgroundColor: '#1C1C20' }} />
       )}
     </View>
   );

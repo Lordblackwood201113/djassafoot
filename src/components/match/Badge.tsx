@@ -7,7 +7,7 @@ export function Badge({ url, size = 40 }: { url?: string; size?: number }) {
     return (
       <View
         style={{ width: size, height: size, borderRadius: radius }}
-        className="bg-blue-bottom"
+        className="bg-surface-2"
       />
     );
   }

@@ -20,8 +20,8 @@ export default function AppLayout() {
 
   if (!isLoaded) {
     return (
-      <View className="flex-1 items-center justify-center bg-blue-bottom">
-        <ActivityIndicator color="#E5342B" />
+      <View className="flex-1 items-center justify-center bg-ink">
+        <ActivityIndicator color="#F5F5F4" />
       </View>
     );
   }
@@ -32,7 +32,7 @@ export default function AppLayout() {
     <Stack
       screenOptions={{
         headerShown: false,
-        contentStyle: { backgroundColor: '#0A1230' },
+        contentStyle: { backgroundColor: '#0A0A0B' },
       }}
     />
   );

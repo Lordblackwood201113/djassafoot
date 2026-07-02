@@ -11,7 +11,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BrutalBox } from '@/components/brutal/BrutalBox';
 import { BrutalButton } from '@/components/brutal/BrutalButton';
 import { ScreenBackground } from '@/components/ScreenBackground';
-import { hardShadow } from '@/lib/brutal';
 import { pickSquareImage, uploadToConvex } from '@/lib/leagueLogo';
 
 const EMOJIS = ['🏆', '⚽', '🔥', '🦁', '🐘', '🌍', '⭐', '💪', '🎯', '👑', '🚀', '💎'];
@@ -77,31 +76,24 @@ export default function CreateLeague() {
           <View className="flex-row items-center gap-3 px-4 pt-2">
             <Pressable
               onPress={() => (router.canGoBack() ? router.back() : router.replace('/leaderboard'))}
-              className="h-11 w-11 items-center justify-center border-2 border-white bg-ink"
-              style={[{ borderRadius: 0 }, hardShadow('#E5342B', 4)]}
+              className="h-11 w-11 items-center justify-center rounded-[13px] border border-hairline bg-surface-2"
             >
               <Ionicons name="chevron-back" size={24} color="#ffffff" />
             </Pressable>
-            <View className="h-3 w-3 bg-red" />
-            <Text className="font-display text-2xl uppercase text-white">Nouvelle ligue</Text>
+            <Text className="font-display text-2xl text-white">Nouvelle ligue</Text>
           </View>
 
           <View className="gap-5 px-6 pt-8">
             {/* Logo : image importée ou emoji */}
             <View className="items-center gap-3">
               <Pressable onPress={onPickLogo} disabled={logoBusy}>
-                <BrutalBox
-                  shadow="#E5342B"
-                  offset={6}
-                  borderWidth={2.5}
-                  className="h-20 w-20 items-center justify-center overflow-hidden bg-surface-3"
-                >
+                <BrutalBox className="h-20 w-20 items-center justify-center overflow-hidden bg-surface-2">
                   {logoUri ? (
                     <Image source={{ uri: logoUri }} style={{ width: 74, height: 74 }} contentFit="cover" />
                   ) : (
                     <Text className="text-[40px]">{emoji}</Text>
                   )}
-                  <View className="absolute bottom-0 right-0 h-6 w-6 items-center justify-center border-2 border-white bg-ink">
+                  <View className="absolute bottom-0 right-0 h-6 w-6 items-center justify-center rounded-full border border-hairline bg-ink">
                     <Ionicons name={logoBusy ? 'hourglass' : 'camera'} size={13} color="#ffffff" />
                   </View>
                 </BrutalBox>
@@ -110,23 +102,22 @@ export default function CreateLeague() {
               <Pressable
                 onPress={onPickLogo}
                 disabled={logoBusy}
-                className="flex-row items-center gap-2 border-2 border-white bg-ink px-3 py-2"
-                style={{ borderRadius: 0 }}
+                className="flex-row items-center gap-2 rounded-xl border border-hairline bg-surface-2 px-3 py-2"
               >
-                <Ionicons name="image-outline" size={15} color="#3FCB86" />
-                <Text className="font-mono-bold text-[11px] uppercase text-green" style={{ letterSpacing: 0.5 }}>
+                <Ionicons name="image-outline" size={15} color="#A1A1AA" />
+                <Text className="font-ui-semibold text-[11px] text-muted">
                   {logoBusy ? 'Import…' : logoUri ? 'Changer l’image' : 'Importer une image'}
                 </Text>
               </Pressable>
 
-              <Text className="font-mono text-[9px] uppercase text-muted">ou choisis un emoji</Text>
+              <Text className="font-ui-medium text-[9px] text-muted">ou choisis un emoji</Text>
               <View className="flex-row flex-wrap justify-center gap-2">
                 {EMOJIS.map((e) => (
                   <Pressable
                     key={e}
                     onPress={() => chooseEmoji(e)}
-                    className="h-10 w-10 items-center justify-center border-2 bg-ink"
-                    style={{ borderRadius: 0, borderColor: !logoUri && e === emoji ? '#E5342B' : '#FFFFFF' }}
+                    className="h-10 w-10 items-center justify-center rounded-[13px] border bg-surface-2"
+                    style={{ borderColor: !logoUri && e === emoji ? '#FFFFFF' : 'rgba(255,255,255,0.10)' }}
                   >
                     <Text className="text-[18px]">{e}</Text>
                   </Pressable>
@@ -136,23 +127,22 @@ export default function CreateLeague() {
 
             {/* Nom */}
             <View className="gap-1.5">
-              <Text className="font-mono-bold text-[11px] uppercase text-muted" style={{ letterSpacing: 1 }}>
+              <Text className="font-ui-semibold text-[11px] text-muted">
                 Nom de la ligue
               </Text>
               <TextInput
                 value={name}
                 onChangeText={setName}
-                placeholder="EX : LES PRONO KINGS"
-                placeholderTextColor="#6B77A8"
+                placeholder="Ex : Les prono kings"
+                placeholderTextColor="#6B7280"
                 maxLength={40}
                 autoCapitalize="characters"
-                className="w-full border-2 border-white bg-surface-3 px-4 py-3.5 font-mono text-[14px] text-white"
-                style={{ borderRadius: 0 }}
+                className="w-full rounded-xl border border-hairline bg-surface-2 px-4 py-3.5 font-ui-medium text-[14px] text-white"
               />
             </View>
 
             {error ? (
-              <Text className="font-mono-bold text-[12px] uppercase text-red">{error}</Text>
+              <Text className="font-ui-semibold text-[12px] text-red">{error}</Text>
             ) : null}
 
             <BrutalButton
@@ -161,7 +151,7 @@ export default function CreateLeague() {
               onPress={onCreate}
               loading={loading}
             />
-            <Text className="text-center font-mono text-[10px] uppercase text-muted" style={{ lineHeight: 15 }}>
+            <Text className="text-center font-ui-medium text-[10px] text-muted" style={{ lineHeight: 15 }}>
               Tu recevras un code à partager pour inviter tes amis.
             </Text>
           </View>

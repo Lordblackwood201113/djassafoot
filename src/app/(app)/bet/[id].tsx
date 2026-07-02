@@ -10,17 +10,16 @@ import { BrutalBox } from '@/components/brutal/BrutalBox';
 import { BrutalButton } from '@/components/brutal/BrutalButton';
 import { BetCard, type Bet } from '@/components/prono/BetCard';
 import { ScreenBackground } from '@/components/ScreenBackground';
-import { hardShadow } from '@/lib/brutal';
 
 // En-tête de résultat selon le statut du pari.
 const HERO: Record<
   string,
-  { title: string; icon: keyof typeof Ionicons.glyphMap; bg: string; fg: string; shadow: string }
+  { title: string; icon: keyof typeof Ionicons.glyphMap; bg: string; fg: string }
 > = {
-  won: { title: 'Prono gagné', icon: 'trophy', bg: '#3FCB86', fg: '#0A1230', shadow: '#0A1230' },
-  lost: { title: 'Prono perdu', icon: 'close', bg: '#E5342B', fg: '#FFFFFF', shadow: '#0A1230' },
-  pending: { title: 'En attente', icon: 'hourglass', bg: '#131C3F', fg: '#FFFFFF', shadow: '#E5342B' },
-  void: { title: 'Prono annulé', icon: 'remove', bg: '#131C3F', fg: '#9AA4CC', shadow: '#E5342B' },
+  won: { title: 'Prono gagné', icon: 'trophy', bg: '#151518', fg: '#6FA287' },
+  lost: { title: 'Prono perdu', icon: 'close', bg: '#151518', fg: '#E5484D' },
+  pending: { title: 'En attente', icon: 'hourglass', bg: '#151518', fg: '#A1A1AA' },
+  void: { title: 'Prono annulé', icon: 'remove', bg: '#151518', fg: '#A1A1AA' },
 };
 
 export default function BetDetail() {
@@ -47,18 +46,17 @@ export default function BetDetail() {
         <View className="px-4 pt-2">
           <Pressable
             onPress={() => (router.canGoBack() ? router.back() : router.replace('/pronos'))}
-            className="h-11 w-11 items-center justify-center border-2 border-white bg-ink"
-            style={[{ borderRadius: 0 }, hardShadow('#E5342B', 4)]}
+            className="h-11 w-11 items-center justify-center rounded-[13px] border border-hairline bg-surface"
           >
             <Ionicons name="chevron-back" size={24} color="#ffffff" />
           </Pressable>
         </View>
 
         {bet === undefined ? (
-          <Text className="mt-16 text-center font-mono-bold text-sm uppercase text-muted">Chargement…</Text>
+          <Text className="mt-16 text-center font-ui-semibold text-sm text-muted">Chargement…</Text>
         ) : bet === null ? (
           <View className="flex-1 items-center justify-center px-10">
-            <Text className="text-center font-display text-base uppercase text-white">Pari introuvable</Text>
+            <Text className="text-center font-display text-base text-white">Pari introuvable</Text>
           </View>
         ) : (
           <ScrollView
@@ -68,23 +66,19 @@ export default function BetDetail() {
             {/* En-tête résultat */}
             <View className="items-center gap-4 pt-2">
               <BrutalBox
-                shadow={hero.shadow}
-                offset={7}
-                borderWidth={2}
-                className="h-24 w-24 items-center justify-center"
+                className="h-24 w-24 items-center justify-center rounded-2xl"
                 style={{ backgroundColor: hero.bg }}
               >
                 <Ionicons name={hero.icon} size={48} color={hero.fg} />
               </BrutalBox>
               <View className="items-center gap-1.5">
-                <Text className="text-center font-display text-3xl uppercase text-white" style={{ letterSpacing: 0.5 }}>
+                <Text className="text-center font-display text-3xl text-white">
                   {hero.title}
                 </Text>
                 <Text
-                  className={`text-center font-mono-bold text-[12px] uppercase ${
+                  className={`text-center font-ui-semibold text-[12px] ${
                     status === 'won' ? 'text-green' : status === 'lost' ? 'text-red' : 'text-muted'
                   }`}
-                  style={{ letterSpacing: 0.5 }}
                 >
                   {subtitle}
                 </Text>

@@ -11,7 +11,6 @@ import { BrutalBox } from '@/components/brutal/BrutalBox';
 import { BrutalButton } from '@/components/brutal/BrutalButton';
 import { BetCard, type Bet } from '@/components/prono/BetCard';
 import { ScreenBackground } from '@/components/ScreenBackground';
-import { hardShadow } from '@/lib/brutal';
 
 function initials(name?: string) {
   if (!name) return '?';
@@ -63,18 +62,17 @@ export default function UserProfile() {
         <View className="px-4 pt-2">
           <Pressable
             onPress={() => (router.canGoBack() ? router.back() : router.replace('/leaderboard'))}
-            className="h-11 w-11 items-center justify-center border-2 border-white bg-ink"
-            style={[{ borderRadius: 0 }, hardShadow('#E5342B', 4)]}
+            className="h-11 w-11 items-center justify-center rounded-[13px] border border-hairline bg-surface"
           >
             <Ionicons name="chevron-back" size={24} color="#ffffff" />
           </Pressable>
         </View>
 
         {profile === undefined ? (
-          <ActivityIndicator color="#E5342B" className="my-16" />
+          <ActivityIndicator color="#A1A1AA" className="my-16" />
         ) : profile === null ? (
           <View className="flex-1 items-center justify-center px-10">
-            <Text className="text-center font-display text-base uppercase text-white">
+            <Text className="text-center font-display text-base text-white">
               Joueur introuvable
             </Text>
           </View>
@@ -84,27 +82,24 @@ export default function UserProfile() {
             showsVerticalScrollIndicator={false}
           >
             {/* Carte profil */}
-            <BrutalBox shadow="#E5342B" offset={6} borderWidth={2} className="items-center gap-3 bg-surface-3 p-5">
-              <View
-                className="h-20 w-20 items-center justify-center overflow-hidden border-2 border-white bg-surface-2"
-                style={{ borderRadius: 0 }}
-              >
+            <BrutalBox className="items-center gap-3 rounded-2xl border border-hairline bg-surface-3 p-5">
+              <View className="h-20 w-20 items-center justify-center overflow-hidden rounded-2xl border border-hairline bg-surface-2">
                 {profile.avatarUrl ? (
                   <Image source={{ uri: profile.avatarUrl }} style={{ width: 80, height: 80 }} />
                 ) : (
                   <Text className="font-display text-2xl text-white">{initials(profile.username)}</Text>
                 )}
               </View>
-              <Text numberOfLines={1} className="text-center font-display text-2xl uppercase text-white">
+              <Text numberOfLines={1} className="text-center font-display text-2xl text-white">
                 {profile.username}
-                {profile.isMe ? ' · TOI' : ''}
+                {profile.isMe ? ' · Toi' : ''}
               </Text>
 
               {/* Stats */}
               <View className="mt-1 flex-row items-stretch gap-2.5">
                 <Stat label="Jetons" value={`🪙 ${profile.flames.toLocaleString('fr-FR')}`} color="#FFFFFF" />
-                <Stat label="Pronos" value={`${profile.betCount}`} color="#9AA4CC" />
-                <Stat label="Gagnés" value={`${profile.wonCount}`} color="#3FCB86" />
+                <Stat label="Pronos" value={`${profile.betCount}`} color="#A1A1AA" />
+                <Stat label="Gagnés" value={`${profile.wonCount}`} color="#6FA287" />
               </View>
 
               {/* Bouton d'amitié (pas pour soi-même) */}
@@ -123,14 +118,13 @@ export default function UserProfile() {
 
             {/* Ses pronos */}
             <View className="flex-row items-center gap-2 pt-1">
-              <View className="h-2.5 w-2.5 bg-red" />
-              <Text className="font-display text-base uppercase text-white">Ses pronos</Text>
+              <Text className="font-display text-base text-white">Ses pronos</Text>
             </View>
 
             {bets === undefined ? (
-              <ActivityIndicator color="#E5342B" className="my-8" />
+              <ActivityIndicator color="#A1A1AA" className="my-8" />
             ) : bets.length === 0 ? (
-              <Text className="py-6 text-center font-mono text-xs uppercase text-muted">
+              <Text className="py-6 text-center font-ui-medium text-xs text-muted">
                 Aucun prono pour le moment.
               </Text>
             ) : (
@@ -147,11 +141,11 @@ export default function UserProfile() {
 
 function Stat({ label, value, color }: { label: string; value: string; color: string }) {
   return (
-    <View className="items-center border-2 border-white bg-ink px-3 py-2" style={{ borderRadius: 0 }}>
+    <View className="items-center rounded-2xl border border-hairline bg-surface-2 px-3 py-2">
       <Text className="font-display text-[15px]" style={{ color }}>
         {value}
       </Text>
-      <Text className="mt-0.5 font-mono text-[9px] uppercase text-muted">{label}</Text>
+      <Text className="mt-0.5 font-ui-medium text-[9px] text-muted">{label}</Text>
     </View>
   );
 }

@@ -24,11 +24,11 @@ function Confrontation({ m }: { m: Match }) {
   return (
     <Pressable
       onPress={() => router.push(`/match/${m._id}`)}
-      className="flex-row items-center gap-2 border-t-2 border-white/10 px-1 py-2.5"
+      className="flex-row items-center gap-2 border-t border-line px-1 py-2.5"
     >
       <Text
         numberOfLines={1}
-        className="flex-1 text-right font-mono-bold text-[12px] uppercase text-white"
+        className="flex-1 text-right font-ui-semibold text-[12px] text-white"
       >
         {frTeam(m.homeName)}
       </Text>
@@ -38,15 +38,15 @@ function Confrontation({ m }: { m: Match }) {
           {score ? `${m.homeScore ?? 0} - ${m.awayScore ?? 0}` : formatTime(m.kickoff)}
         </Text>
         <Text
-          className={`font-mono text-[9px] uppercase ${live ? 'text-red' : 'text-muted'}`}
+          className={`font-ui-medium text-[9px] ${live ? 'text-red' : 'text-muted'}`}
         >
-          {live ? (m.minute ? `${m.minute}'` : 'LIVE') : finished ? 'TERMINÉ' : formatDay(m.kickoff)}
+          {live ? (m.minute ? `${m.minute}'` : 'Live') : finished ? 'Terminé' : formatDay(m.kickoff)}
         </Text>
       </View>
       <Flag name={m.awayName} size={20} />
       <Text
         numberOfLines={1}
-        className="flex-1 font-mono-bold text-[12px] uppercase text-white"
+        className="flex-1 font-ui-semibold text-[12px] text-white"
       >
         {frTeam(m.awayName)}
       </Text>
@@ -82,14 +82,13 @@ export function GroupStandings({ rows, matches }: { rows: Row[]; matches: Match[
     <View className="gap-4 px-5 pb-6">
       <View className="flex-row items-center justify-between px-1">
         <View className="flex-row items-center gap-2">
-          <View className="h-[10px] w-[10px] bg-red" />
-          <Text className="font-display text-lg uppercase text-white" style={{ letterSpacing: 0.5 }}>
+          <Text className="font-display text-lg text-white">
             Phase de groupes
           </Text>
         </View>
         <View className="flex-row items-center gap-1.5">
-          <View className="h-[9px] w-[9px] bg-green" />
-          <Text className="font-mono text-[10px] uppercase text-muted">Qualifié</Text>
+          <View className="h-[9px] w-[9px] rounded-full bg-green" />
+          <Text className="font-ui-medium text-[10px] text-muted">Qualifié</Text>
         </View>
       </View>
 
@@ -107,21 +106,21 @@ export function GroupStandings({ rows, matches }: { rows: Row[]; matches: Match[
           .sort((a, b) => a.kickoff - b.kickoff);
 
         return (
-          <BrutalBox key={grp.key} shadow="#E5342B" offset={5} className="bg-surface-3 px-3.5 pb-2.5 pt-3">
+          <BrutalBox key={grp.key} className="bg-card px-3.5 pb-2.5 pt-3">
             <Pressable
               onPress={() => setOpen(isOpen ? null : grp.key)}
               className="flex-row items-center justify-between px-1 pb-2.5"
             >
               <View className="flex-row items-center gap-1.5">
-                <Text className="font-display text-[15px] uppercase text-white" style={{ letterSpacing: 0.5 }}>
+                <Text className="font-display text-[15px] text-white">
                   {frGroup(grp.key)}
                 </Text>
-                <Ionicons name={isOpen ? 'chevron-up' : 'chevron-down'} size={15} color="#9AA4CC" />
+                <Ionicons name={isOpen ? 'chevron-up' : 'chevron-down'} size={15} color="#A1A1AA" />
               </View>
               <View className="flex-row">
-                <Text className="w-7 text-center font-mono text-[10px] uppercase text-muted">J</Text>
-                <Text className="w-9 text-center font-mono text-[10px] uppercase text-muted">Diff</Text>
-                <Text className="w-7 text-center font-mono text-[10px] uppercase text-muted">Pts</Text>
+                <Text className="w-7 text-center font-ui-medium text-[10px] text-muted">J</Text>
+                <Text className="w-9 text-center font-ui-medium text-[10px] text-muted">Diff</Text>
+                <Text className="w-7 text-center font-ui-medium text-[10px] text-muted">Pts</Text>
               </View>
             </Pressable>
 
@@ -132,23 +131,23 @@ export function GroupStandings({ rows, matches }: { rows: Row[]; matches: Match[
               return (
                 <View
                   key={r._id}
-                  className="flex-row items-center gap-2.5 border-t-2 border-white/10 py-2"
+                  className="flex-row items-center gap-2.5 border-t border-line py-2"
                 >
                   <View
-                    className="h-[8px] w-[8px]"
-                    style={{ backgroundColor: qualified ? '#3FCB86' : 'transparent' }}
+                    className="h-[8px] w-[8px] rounded-full"
+                    style={{ backgroundColor: qualified ? '#6FA287' : 'transparent' }}
                   />
                   <Text className="w-3 font-display text-[13px] text-muted">{r.rank}</Text>
                   <Flag name={r.teamName} size={24} />
                   <Text
                     numberOfLines={1}
-                    className="flex-1 font-mono-bold text-[13px] uppercase text-white"
+                    className="flex-1 font-ui-semibold text-[13px] text-white"
                   >
                     {frTeam(r.teamName)}
                   </Text>
                   <View className="flex-row">
-                    <Text className="w-7 text-center font-mono text-[12px] text-muted">{r.played}</Text>
-                    <Text className="w-9 text-center font-mono text-[12px] text-muted">
+                    <Text className="w-7 text-center font-ui-medium text-[12px] text-muted">{r.played}</Text>
+                    <Text className="w-9 text-center font-ui-medium text-[12px] text-muted">
                       {r.goalDiff > 0 ? `+${r.goalDiff}` : r.goalDiff}
                     </Text>
                     <Text className="w-7 text-center font-display text-[14px] text-white">
@@ -160,15 +159,14 @@ export function GroupStandings({ rows, matches }: { rows: Row[]; matches: Match[
             })}
 
             {isOpen ? (
-              <View className="mt-2.5 border-t-2 border-white/20 pt-2">
+              <View className="mt-2.5 border-t border-line pt-2">
                 <View className="flex-row items-center gap-1.5 px-1 pb-1">
-                  <View className="h-[8px] w-[8px] bg-red" />
-                  <Text className="font-mono-bold text-[10px] uppercase text-muted">Confrontations</Text>
+                  <Text className="font-ui-semibold text-[10px] text-muted">Confrontations</Text>
                 </View>
                 {confront.length > 0 ? (
                   confront.map((m) => <Confrontation key={m._id} m={m} />)
                 ) : (
-                  <Text className="px-1 py-2 font-mono text-[11px] uppercase text-muted">
+                  <Text className="px-1 py-2 font-ui-medium text-[11px] text-muted">
                     Aucun match pour le moment.
                   </Text>
                 )}

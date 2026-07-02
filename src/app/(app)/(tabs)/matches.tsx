@@ -11,14 +11,13 @@ import { BrutalSegment } from '@/components/brutal/Segment';
 import { CompetitionSwitcher } from '@/components/CompetitionSwitcher';
 import { MatchRow } from '@/components/match/MatchRow';
 import { ScreenBackground } from '@/components/ScreenBackground';
-import { hardShadow } from '@/lib/brutal';
 import { phaseHeading } from '@/lib/format';
 
 const DAY = 24 * 60 * 60 * 1000;
 const SEGMENTS = [
-  { key: 'yesterday', label: 'HIER' },
-  { key: 'today', label: "AUJOURD'HUI" },
-  { key: 'upcoming', label: 'À VENIR' },
+  { key: 'yesterday', label: 'Hier' },
+  { key: 'today', label: "Aujourd'hui" },
+  { key: 'upcoming', label: 'À venir' },
 ];
 
 function startOfToday(): number {
@@ -63,14 +62,13 @@ export default function Matches() {
         <AppHeader />
 
         <View className="flex-row items-center justify-between px-5 pb-3 pt-1">
-          <Text className="font-display text-[26px] uppercase text-white" style={{ letterSpacing: 0.5 }}>
+          <Text className="font-display text-[26px] text-white">
             Matchs
           </Text>
           <View className="flex-row items-center gap-2.5">
             <Pressable
               onPress={() => router.push('/bracket')}
-              className="h-9 w-9 items-center justify-center border-2 border-white bg-ink"
-              style={[{ borderRadius: 0 }, hardShadow('#E5342B', 3)]}
+              className="h-9 w-9 items-center justify-center rounded-[13px] border border-hairline bg-surface-2"
             >
               <MaterialCommunityIcons name="tournament" size={18} color="#ffffff" />
             </Pressable>
@@ -89,13 +87,12 @@ export default function Matches() {
           {sections.map((sec) => (
             <View key={sec.heading} className="px-5 pt-4">
               <View className="mb-2 flex-row items-center gap-2.5">
-                <View className="h-4 w-1 bg-red" style={{ borderRadius: 0 }} />
-                <Text className="font-display text-[14px] uppercase text-white" style={{ letterSpacing: 0.5 }}>
+                <Text className="font-display text-[14px] text-white">
                   {sec.heading}
                 </Text>
-                <Text className="font-mono-bold text-[12px] text-muted">{sec.matches.length}</Text>
+                <Text className="font-ui-semibold text-[12px] text-muted">{sec.matches.length}</Text>
               </View>
-              <BrutalBox shadow="#E5342B" offset={5} borderWidth={2} className="bg-surface-3">
+              <BrutalBox className="bg-surface-3">
                 {sec.matches.map((m) => (
                   <MatchRow key={m._id} match={m} />
                 ))}
@@ -103,7 +100,7 @@ export default function Matches() {
             </View>
           ))}
           {all !== undefined && filtered.length === 0 ? (
-            <Text className="mt-12 text-center font-mono uppercase text-[12px] text-muted" style={{ letterSpacing: 0.5 }}>
+            <Text className="mt-12 text-center font-ui-medium text-[12px] text-muted">
               Aucun match {emptyLabel}.
             </Text>
           ) : null}

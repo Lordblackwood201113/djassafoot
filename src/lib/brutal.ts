@@ -1,27 +1,39 @@
 import type { ViewStyle } from 'react-native';
 
-// Ombre DURE décalée (sans flou) — signature brutaliste (shadowRadius 0 = arête nette).
-// Sur web (RN Web) → boxShadow net ; sur natif → shadow* / elevation.
-export function hardShadow(color = '#E5342B', d = 5): ViewStyle {
+// Thème « Noir » : design PLAT (profondeur via contraste de surfaces + filets hairline).
+// `hardShadow` est conservé pour compat (appelé dans de nombreux écrans) mais ne rend plus
+// aucune ombre — les anciens arguments (couleur/décalage) sont ignorés.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export function hardShadow(_color = '#000', _d = 5): ViewStyle {
+  return {};
+}
+
+// Ombre douce optionnelle (élévation moderne, sans décalage dur) — à utiliser explicitement.
+export function softShadow(): ViewStyle {
   return {
-    shadowColor: color,
-    shadowOffset: { width: d, height: d },
-    shadowOpacity: 1,
-    shadowRadius: 0,
-    elevation: 6,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.35,
+    shadowRadius: 18,
+    elevation: 8,
   };
 }
 
-// Palette brutaliste (mêmes valeurs que les tokens Tailwind).
+// Palette « Noir » (mêmes valeurs que les tokens Tailwind).
 export const B = {
-  red: '#E5342B',
-  green: '#3FCB86',
-  ink: '#0A1230',
-  surface3: '#131C3F',
+  bg: '#0A0A0B',
+  card: '#151518',
+  surface2: '#1C1C20',
+  surface3: '#151518',
+  hairline: 'rgba(255,255,255,0.10)',
+  line: 'rgba(255,255,255,0.06)',
   white: '#FFFFFF',
-  muted: '#9AA4CC',
-  mutedDark: '#6B76A8',
-  gold: '#FFD24A',
-  silver: '#C0C0C0',
-  bronze: '#CD7F32',
+  paper: '#F5F5F4',
+  muted: '#A1A1AA',
+  mutedDark: '#6B7280',
+  green: '#6FA287', // sauge
+  red: '#E5484D', // désaturé
+  gold: '#D9C48A',
+  silver: '#B8BCC4',
+  bronze: '#B98A63',
 } as const;

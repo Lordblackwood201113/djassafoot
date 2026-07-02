@@ -17,7 +17,6 @@ import { StatsView } from '@/components/match/StatsView';
 import { TimelineView } from '@/components/match/TimelineView';
 import { ScreenBackground } from '@/components/ScreenBackground';
 import { EVENTS, track } from '@/lib/analytics';
-import { hardShadow } from '@/lib/brutal';
 import { COMP_NAME, formatHeroDate, phaseHeading } from '@/lib/format';
 import { frTeam } from '@/lib/teamNames';
 
@@ -60,9 +59,9 @@ export default function MatchDetail() {
   // Onglets disponibles selon les données réellement présentes.
   const tabs = useMemo(() => {
     const t: { key: string; label: string }[] = [];
-    if (details?.lineup?.length) t.push({ key: 'lineup', label: 'COMPO' });
-    if (details?.timeline?.length) t.push({ key: 'timeline', label: 'TEMPS FORTS' });
-    if (details?.stats?.length) t.push({ key: 'stats', label: 'STATS' });
+    if (details?.lineup?.length) t.push({ key: 'lineup', label: 'Compo' });
+    if (details?.timeline?.length) t.push({ key: 'timeline', label: 'Temps forts' });
+    if (details?.stats?.length) t.push({ key: 'stats', label: 'Stats' });
     return t;
   }, [details]);
 
@@ -75,18 +74,16 @@ export default function MatchDetail() {
         <View className="flex-row items-center justify-between px-4 pb-1 pt-1">
           <Pressable
             onPress={() => (router.canGoBack() ? router.back() : router.replace('/matches'))}
-            className="h-11 w-11 items-center justify-center border-2 border-white bg-ink"
-            style={[{ borderRadius: 0 }, hardShadow('#E5342B', 3)]}
+            className="h-11 w-11 items-center justify-center rounded-[13px] border border-hairline bg-surface-2"
           >
             <Ionicons name="chevron-back" size={24} color="#ffffff" />
           </Pressable>
-          <Text className="font-display text-lg uppercase text-white" style={{ letterSpacing: 0.5 }}>
+          <Text className="font-display text-lg text-white">
             {match ? phaseHeading(match.round) : 'Match'}
           </Text>
           <Pressable
             onPress={() => router.push('/bracket')}
-            className="h-11 w-11 items-center justify-center border-2 border-white bg-ink"
-            style={[{ borderRadius: 0 }, hardShadow('#E5342B', 3)]}
+            className="h-11 w-11 items-center justify-center rounded-[13px] border border-hairline bg-surface-2"
             accessibilityLabel="Voir le tableau final"
           >
             <MaterialCommunityIcons name="tournament" size={20} color="#ffffff" />
@@ -100,10 +97,9 @@ export default function MatchDetail() {
             showsVerticalScrollIndicator={false}
           >
             {/* Hero compact : drapeaux + noms + score/statut */}
-            <BrutalBox shadow="#E5342B" offset={6} borderWidth={2} className="bg-surface-3 px-4 py-4">
+            <BrutalBox shadow={false} borderWidth={1} className="rounded-2xl bg-card px-4 py-4">
               <View className="mb-3 flex-row items-center justify-center gap-2">
-                <View className="h-2 w-2 bg-red" style={{ borderRadius: 0 }} />
-                <Text className="font-mono-bold text-[10px] uppercase text-muted" style={{ letterSpacing: 1.2 }}>
+                <Text className="font-ui-semibold text-[10px] text-muted" style={{ letterSpacing: 0.5 }}>
                   {COMP_NAME[match.competitionApiId] ?? 'Coupe du Monde'} · {phaseHeading(match.round)}
                 </Text>
               </View>
@@ -111,7 +107,7 @@ export default function MatchDetail() {
               <View className="flex-row items-center">
                 <View className="flex-1 flex-row items-center gap-2">
                   <Flag name={match.homeName} size={30} />
-                  <Text numberOfLines={2} className="flex-1 font-display text-[13px] uppercase text-white">
+                  <Text numberOfLines={2} className="flex-1 font-display text-[13px] text-white">
                     {frTeam(match.homeName)}
                   </Text>
                 </View>
@@ -119,8 +115,8 @@ export default function MatchDetail() {
                 <View className="items-center gap-1.5 px-2">
                   {match.status === 'scheduled' ? (
                     <>
-                      <Text className="font-display text-2xl uppercase text-red">VS</Text>
-                      <Text className="font-mono-bold text-[9px] uppercase text-muted">
+                      <Text className="font-display text-2xl text-muted">VS</Text>
+                      <Text className="font-ui-semibold text-[9px] text-muted">
                         {formatHeroDate(match.kickoff)}
                       </Text>
                     </>
@@ -130,22 +126,19 @@ export default function MatchDetail() {
                         {match.homeScore ?? 0} - {match.awayScore ?? 0}
                       </Text>
                       {match.status === 'live' ? (
-                        <View
-                          className="flex-row items-center gap-1.5 bg-red px-2 py-0.5"
-                          style={{ borderRadius: 0 }}
-                        >
-                          <View className="h-1.5 w-1.5 bg-white" style={{ borderRadius: 0 }} />
-                          <Text className="font-mono-bold text-[9px] uppercase text-white" style={{ letterSpacing: 0.5 }}>
+                        <View className="flex-row items-center gap-1.5 rounded-full bg-red px-2 py-0.5">
+                          <View className="h-1.5 w-1.5 rounded-full bg-white" />
+                          <Text className="font-ui-semibold text-[9px] text-white">
                             {match.minute ? `${match.minute}'` : 'Live'}
                           </Text>
                         </View>
                       ) : (
-                        <Text className="font-mono-bold text-[9px] uppercase text-muted" style={{ letterSpacing: 0.5 }}>
+                        <Text className="font-ui-semibold text-[9px] text-muted">
                           Terminé
                         </Text>
                       )}
                       {match.homePenalty != null && match.awayPenalty != null ? (
-                        <Text className="font-mono-bold text-[9px] uppercase text-red">
+                        <Text className="font-ui-semibold text-[9px] text-muted">
                           T.a.b. {match.homePenalty}-{match.awayPenalty}
                         </Text>
                       ) : null}
@@ -154,7 +147,7 @@ export default function MatchDetail() {
                 </View>
 
                 <View className="flex-1 flex-row items-center justify-end gap-2">
-                  <Text numberOfLines={2} className="flex-1 text-right font-display text-[13px] uppercase text-white">
+                  <Text numberOfLines={2} className="flex-1 text-right font-display text-[13px] text-white">
                     {frTeam(match.awayName)}
                   </Text>
                   <Flag name={match.awayName} size={30} />
@@ -171,16 +164,16 @@ export default function MatchDetail() {
                   onPress={() => router.push(`/prono/${match._id}`)}
                 />
                 {myBets && myBets.length > 0 ? (
-                  <BrutalBox shadow={false} borderWidth={2} className="bg-surface-3 px-4 py-3">
-                    <Text className="font-mono-bold text-xs uppercase tracking-wide text-green">
+                  <BrutalBox shadow={false} borderWidth={1} className="rounded-2xl bg-card px-4 py-3">
+                    <Text className="font-ui-semibold text-xs text-green">
                       {`${myBets.length} pari${myBets.length > 1 ? 's' : ''} déjà placé${myBets.length > 1 ? 's' : ''} sur ce match`}
                     </Text>
                   </BrutalBox>
                 ) : null}
               </View>
             ) : (
-              <BrutalBox shadow={false} borderWidth={2} className="bg-surface-3 px-4 py-3">
-                <Text className="font-mono-bold text-xs uppercase tracking-wide text-muted">
+              <BrutalBox shadow={false} borderWidth={1} className="rounded-2xl bg-card px-4 py-3">
+                <Text className="font-ui-semibold text-xs text-muted">
                   Pronos fermés pour ce match
                 </Text>
               </BrutalBox>
@@ -190,7 +183,7 @@ export default function MatchDetail() {
             {tabs.length > 0 ? (
               <View className="gap-3">
                 <BrutalSegment options={tabs} value={activeTab ?? ''} onChange={setTab} />
-                <BrutalBox shadow={false} borderWidth={2} className="bg-surface-3 p-4">
+                <BrutalBox shadow={false} borderWidth={1} className="rounded-2xl bg-card p-4">
                   {activeTab === 'lineup' ? (
                     details!.homeFormation && details!.lineup.some((p) => p.grid) ? (
                       <PitchView
@@ -222,8 +215,8 @@ export default function MatchDetail() {
                 ) : null}
               </View>
             ) : match.status === 'scheduled' ? (
-              <BrutalBox shadow={false} borderWidth={2} className="bg-surface-3 px-4 py-3">
-                <Text className="font-mono text-[11px] uppercase text-muted" style={{ lineHeight: 17 }}>
+              <BrutalBox shadow={false} borderWidth={1} className="rounded-2xl bg-card px-4 py-3">
+                <Text className="font-ui-medium text-[11px] text-muted" style={{ lineHeight: 17 }}>
                   Compo disponible environ 1h avant le coup d'envoi.
                 </Text>
               </BrutalBox>
@@ -231,7 +224,7 @@ export default function MatchDetail() {
           </ScrollView>
         ) : (
           <View className="flex-1 items-center justify-center">
-            <Text className="font-mono-bold text-sm uppercase tracking-widest text-muted">Chargement…</Text>
+            <Text className="font-ui-semibold text-sm text-muted">Chargement…</Text>
           </View>
         )}
       </View>

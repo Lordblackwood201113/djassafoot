@@ -48,17 +48,17 @@ SplashScreen.preventAutoHideAsync();
 // Écran d'erreur explicite (au lieu d'une page blanche) si une variable manque au build.
 function ConfigError({ missing }: { missing: string[] }) {
   return (
-    <View style={{ flex: 1, backgroundColor: '#0A1230', alignItems: 'center', justifyContent: 'center', padding: 28 }}>
-      <Text style={{ color: '#E5342B', fontSize: 22, fontWeight: '800', textAlign: 'center' }}>
+    <View style={{ flex: 1, backgroundColor: '#0A0A0B', alignItems: 'center', justifyContent: 'center', padding: 28 }}>
+      <Text style={{ color: '#E5484D', fontSize: 22, fontWeight: '800', textAlign: 'center' }}>
         Configuration manquante
       </Text>
       <Text style={{ color: '#FFFFFF', fontSize: 13, marginTop: 12, textAlign: 'center' }}>
         Variable(s) d&apos;environnement absente(s) au build :
       </Text>
-      <Text style={{ color: '#9AA4CC', fontSize: 13, marginTop: 8, textAlign: 'center', lineHeight: 20 }}>
+      <Text style={{ color: '#A1A1AA', fontSize: 13, marginTop: 8, textAlign: 'center', lineHeight: 20 }}>
         {missing.join('\n')}
       </Text>
-      <Text style={{ color: '#6B76A8', fontSize: 11, marginTop: 18, textAlign: 'center', lineHeight: 16 }}>
+      <Text style={{ color: '#6B7280', fontSize: 11, marginTop: 18, textAlign: 'center', lineHeight: 16 }}>
         Ajoute-les dans l&apos;hébergeur (sans guillemets) puis relance un déploiement — les
         variables EXPO_PUBLIC_* sont figées au moment du build.
       </Text>
@@ -116,7 +116,7 @@ export default function RootLayout() {
           <Stack
             screenOptions={{
               headerShown: false,
-              contentStyle: { backgroundColor: '#0A1230' },
+              contentStyle: { backgroundColor: '#0A0A0B' },
             }}
           />
         </ConvexProviderWithClerk>

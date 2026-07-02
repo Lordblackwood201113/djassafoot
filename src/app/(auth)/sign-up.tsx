@@ -20,7 +20,6 @@ import { CodeInput } from '@/components/ui/CodeInput';
 import { Divider } from '@/components/ui/Divider';
 import { TextField } from '@/components/ui/TextField';
 import { EVENTS, track } from '@/lib/analytics';
-import { hardShadow } from '@/lib/brutal';
 import { postAuthHref } from '@/store/pendingLeagueStore';
 
 const RESEND_SECONDS = 60;
@@ -94,10 +93,10 @@ export default function SignUp() {
 
   const mmss = `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
 
-  // --- Étape vérification du code (fond vert, comme « Prono Result ») ---
+  // --- Étape vérification du code (fond noir sobre) ---
   if (pending) {
     return (
-      <ScreenBackground variant="success">
+      <ScreenBackground variant="hero">
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           className="flex-1"
@@ -106,8 +105,7 @@ export default function SignUp() {
             <View className="px-4 pt-2">
               <Pressable
                 onPress={() => setPending(false)}
-                className="h-10 w-10 items-center justify-center border-2 border-white bg-ink"
-                style={[{ borderRadius: 0 }, hardShadow('#0A1230', 4)]}
+                className="h-10 w-10 items-center justify-center rounded-[13px] border border-hairline bg-surface"
               >
                 <Ionicons name="chevron-back" size={22} color="#ffffff" />
               </Pressable>
@@ -115,15 +113,12 @@ export default function SignUp() {
 
             <View className="flex-1 justify-center gap-6 px-8">
               <View className="items-center gap-2">
-                <View className="flex-row items-center gap-2.5">
-                  <View className="h-3.5 w-3.5 bg-red" />
-                  <Text className="text-center font-display text-3xl uppercase text-white">
-                    Vérifie tes mails
-                  </Text>
-                </View>
+                <Text className="text-center font-display text-3xl text-white">
+                  Vérifie tes mails
+                </Text>
                 <Text
-                  className="text-center font-mono text-[12px] uppercase text-white/70"
-                  style={{ lineHeight: 20, letterSpacing: 0.3 }}
+                  className="text-center font-ui-medium text-[13px] text-muted"
+                  style={{ lineHeight: 20 }}
                 >
                   {"On t'a envoyé un code à 6 chiffres à "}{email}
                 </Text>
@@ -137,19 +132,19 @@ export default function SignUp() {
               />
 
               {error ? (
-                <Text className="text-center font-mono-bold text-[12px] uppercase text-red">
+                <Text className="text-center font-ui-semibold text-[12px] text-red">
                   {error}
                 </Text>
               ) : null}
 
               {seconds > 0 ? (
                 <View className="flex-row items-center justify-center">
-                  <Text className="font-mono text-[12px] uppercase text-white/70">Renvoyer dans </Text>
-                  <Text className="font-mono-bold text-[12px] uppercase text-white">{mmss}</Text>
+                  <Text className="font-ui-medium text-[13px] text-muted">Renvoyer dans </Text>
+                  <Text className="font-ui-semibold text-[13px] text-white">{mmss}</Text>
                 </View>
               ) : (
                 <Pressable onPress={onResend} className="items-center">
-                  <Text className="font-mono-bold text-[12px] uppercase text-red">Renvoyer le code</Text>
+                  <Text className="font-ui-semibold text-[13px] text-white underline">Renvoyer le code</Text>
                 </Pressable>
               )}
             </View>
@@ -187,10 +182,11 @@ export default function SignUp() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          {/* En-tête brutaliste */}
-          <View className="flex-row items-center gap-2.5">
-            <View className="h-3.5 w-3.5 bg-red" />
-            <Text className="font-display text-3xl uppercase text-white">Créer un compte</Text>
+          <View className="gap-1">
+            <Text className="font-display text-3xl text-white">Créer un compte</Text>
+            <Text className="font-ui-medium text-[13px] text-muted">
+              500 jetons offerts à l'inscription.
+            </Text>
           </View>
 
           <View className="flex-row gap-3">
@@ -228,7 +224,7 @@ export default function SignUp() {
           />
 
           {error ? (
-            <Text className="font-mono-bold text-[12px] uppercase text-red">{error}</Text>
+            <Text className="font-ui-semibold text-[12px] text-red">{error}</Text>
           ) : null}
           <BrutalButton label="S'inscrire" variant="primary" onPress={onSignUp} loading={loading} />
 
@@ -236,8 +232,9 @@ export default function SignUp() {
           <SocialAuth />
 
           <Link href="/sign-in" className="text-center">
-            <Text className="font-mono text-[12px] uppercase text-muted">
-              Déjà un compte ? <Text className="font-mono-bold text-red">Se connecter</Text>
+            <Text className="font-ui-medium text-[13px] text-muted">
+              Déjà un compte ?{' '}
+              <Text className="font-ui-semibold text-white underline">Se connecter</Text>
             </Text>
           </Link>
 

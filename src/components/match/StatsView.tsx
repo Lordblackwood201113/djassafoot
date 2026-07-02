@@ -38,18 +38,18 @@ function StatRow({ s }: { s: MatchStat }) {
   const homePct = total > 0 ? (Math.abs(h) / total) * 100 : 50;
 
   return (
-    <View className="border-t-2 border-white/10 py-2.5">
+    <View className="border-t border-line py-2.5">
       <View className="flex-row items-center justify-between">
         <Text className="w-12 font-display text-[15px] text-white">{s.home ?? '—'}</Text>
-        <Text className="flex-1 text-center font-mono-bold text-[11px] uppercase text-muted">
+        <Text className="flex-1 text-center font-ui-semibold text-[11px] text-muted">
           {label}
         </Text>
         <Text className="w-12 text-right font-display text-[15px] text-white">{s.away ?? '—'}</Text>
       </View>
-      {/* Barre proportionnelle domicile (rouge) / extérieur (blanc) */}
-      <View className="mt-1.5 h-1.5 flex-row border border-white/20" style={{ borderRadius: 0 }}>
-        <View style={{ width: `${homePct}%`, backgroundColor: '#E5342B' }} />
-        <View style={{ width: `${100 - homePct}%`, backgroundColor: '#FFFFFF' }} />
+      {/* Barre proportionnelle domicile (blanc) / extérieur (piste sombre) */}
+      <View className="mt-1.5 h-1.5 flex-row overflow-hidden rounded-full bg-surface-2">
+        <View style={{ width: `${homePct}%`, backgroundColor: '#F5F5F4' }} />
+        <View style={{ width: `${100 - homePct}%`, backgroundColor: '#6B7280' }} />
       </View>
     </View>
   );

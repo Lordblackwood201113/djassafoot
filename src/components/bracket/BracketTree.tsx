@@ -2,9 +2,8 @@ import { useEffect, useRef } from 'react';
 import { Dimensions, Pressable, ScrollView, Text, View } from 'react-native';
 
 import { Flag } from '@/components/brutal/Flag';
-import { hardShadow } from '@/lib/brutal';
 
-// Arbre de phase finale — brutaliste : cartes à arêtes vives, ombre dure, drapeaux des pays.
+// Arbre de phase finale — NOIR : cartes arrondies hairline, à plat, drapeaux des pays.
 // On voit ~2 tours à la fois ; le sélecteur de tour fait défiler jusqu'au tour choisi.
 type TeamSlot = { name?: string; rawName?: string; badgeUrl?: string; apiId?: string; code?: string };
 type Pairing = {
@@ -34,7 +33,7 @@ const COL_GAP = 54;
 const PITCH = 112;
 const TOP = 44;
 const PAD = 16;
-const LINE = '#FFFFFF55';
+const LINE = 'rgba(255,255,255,0.15)';
 
 function TeamRow({
   slot,
@@ -53,18 +52,18 @@ function TeamRow({
       {slot?.rawName ? (
         <Flag name={slot.rawName} size={18} />
       ) : (
-        <View style={{ width: 18, height: 18, borderWidth: 2, borderColor: '#2A3568' }} />
+        <View style={{ width: 18, height: 18, borderRadius: 6, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' }} />
       )}
       <Text
         numberOfLines={1}
-        className={`flex-1 font-mono-bold text-[11px] uppercase ${
+        className={`flex-1 font-ui-semibold text-[11px] ${
           resolved ? (dim ? 'text-muted' : 'text-white') : 'text-muted'
         }`}
       >
         {slot?.name ?? slot?.code ?? 'À dét.'}
       </Text>
       {pen != null ? (
-        <Text className={`font-mono-bold text-[9px] ${dim ? 'text-muted' : 'text-red'}`}>({pen})</Text>
+        <Text className={`font-ui-semibold text-[9px] ${dim ? 'text-muted-2' : 'text-muted'}`}>({pen})</Text>
       ) : null}
       {score != null ? (
         <Text className={`font-display text-[13px] ${dim ? 'text-muted' : 'text-white'}`}>{score}</Text>
@@ -106,10 +105,10 @@ export function BracketTree({
       const yC = (yA + yB) / 2;
       const rx = colX(r) + CARD_W;
       const mid = rx + COL_GAP / 2;
-      lines.push({ k: `ha${r}-${i}`, x: rx, y: yA, w: COL_GAP / 2, h: 2 });
-      lines.push({ k: `hb${r}-${i}`, x: rx, y: yB, w: COL_GAP / 2, h: 2 });
-      lines.push({ k: `v${r}-${i}`, x: mid, y: Math.min(yA, yB), w: 2, h: Math.abs(yB - yA) });
-      lines.push({ k: `hc${r}-${i}`, x: mid, y: yC, w: COL_GAP / 2, h: 2 });
+      lines.push({ k: `ha${r}-${i}`, x: rx, y: yA, w: COL_GAP / 2, h: 1 });
+      lines.push({ k: `hb${r}-${i}`, x: rx, y: yB, w: COL_GAP / 2, h: 1 });
+      lines.push({ k: `v${r}-${i}`, x: mid, y: Math.min(yA, yB), w: 1, h: Math.abs(yB - yA) });
+      lines.push({ k: `hc${r}-${i}`, x: mid, y: yC, w: COL_GAP / 2, h: 1 });
     }
   }
 
@@ -137,11 +136,9 @@ export function BracketTree({
                 gap: 6,
               }}
             >
-              <View style={{ width: 8, height: 8, backgroundColor: '#E5342B' }} />
               <Text
                 numberOfLines={1}
-                className="font-mono-bold text-[11px] uppercase text-white"
-                style={{ letterSpacing: 0.5 }}
+                className="font-ui-semibold text-[11px] text-white"
               >
                 {round.label}
               </Text>
@@ -172,11 +169,10 @@ export function BracketTree({
               const card = (
                 <View
                   style={{
-                    borderWidth: 2,
-                    borderColor: '#FFFFFF',
-                    backgroundColor: '#131C3F',
-                    borderRadius: 0,
-                    ...hardShadow('#E5342B', 3),
+                    borderWidth: 1,
+                    borderColor: 'rgba(255,255,255,0.1)',
+                    backgroundColor: '#151518',
+                    borderRadius: 16,
                   }}
                 >
                   <TeamRow
@@ -185,7 +181,7 @@ export function BracketTree({
                     pen={penDecided ? hp : undefined}
                     dim={awayWon}
                   />
-                  <View style={{ height: 2, backgroundColor: '#FFFFFF' }} />
+                  <View style={{ height: 1, backgroundColor: 'rgba(255,255,255,0.06)' }} />
                   <TeamRow
                     slot={pairing?.away}
                     score={hasScore ? pairing?.awayScore : undefined}
@@ -202,16 +198,15 @@ export function BracketTree({
                   {top ? (
                     <Text
                       numberOfLines={1}
-                      className="absolute -top-[20px] left-0.5 font-mono-bold text-[10px] uppercase text-muted"
-                      style={{ letterSpacing: 0.5 }}
+                      className="absolute -top-[20px] left-0.5 font-ui-semibold text-[10px] text-muted"
                     >
                       {top}
                     </Text>
                   ) : null}
                   {pairing?.status === 'live' ? (
-                    <View className="absolute -top-[20px] right-0.5 flex-row items-center gap-1 bg-red px-1.5">
-                      <View className="h-1 w-1 bg-white" />
-                      <Text className="font-mono-bold text-[8px] uppercase text-white">Live</Text>
+                    <View className="absolute -top-[21px] right-0.5 flex-row items-center gap-1 rounded-full bg-red px-2 py-0.5">
+                      <View className="h-1 w-1 rounded-full bg-white" />
+                      <Text className="font-ui-semibold text-[8px] text-white">Live</Text>
                     </View>
                   ) : null}
                   {pairing?.id && onOpen ? (

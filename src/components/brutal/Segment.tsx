@@ -1,6 +1,7 @@
 import { Pressable, Text, View } from 'react-native';
 
-// Segment brutaliste : cellules à arêtes vives, séparateurs épais, actif = rouge.
+// Thème « Noir » : contrôle segmenté en pilule — conteneur arrondi + fond carte, segment actif
+// = pastille blanche (texte noir), inactifs = texte muted. Casse normale, sans bordure dure.
 export function BrutalSegment<T extends string>({
   options,
   value,
@@ -11,17 +12,23 @@ export function BrutalSegment<T extends string>({
   onChange: (k: T) => void;
 }) {
   return (
-    <View className="flex-row border-2 border-white" style={{ borderRadius: 0 }}>
-      {options.map((o, i) => {
+    <View
+      className="flex-row items-center gap-1 border border-hairline bg-surface p-1"
+      style={{ borderRadius: 999 }}
+    >
+      {options.map((o) => {
         const active = o.key === value;
         return (
           <Pressable
             key={o.key}
             onPress={() => onChange(o.key)}
-            className={`flex-1 items-center justify-center py-2.5 ${active ? 'bg-red' : 'bg-ink'}`}
-            style={i < options.length - 1 ? { borderRightWidth: 2, borderColor: '#FFFFFF' } : undefined}
+            className="flex-1 items-center justify-center py-2"
+            style={{ borderRadius: 999, backgroundColor: active ? '#F5F5F4' : 'transparent' }}
           >
-            <Text className={`font-mono-bold text-[11px] ${active ? 'text-white' : 'text-muted'}`}>
+            <Text
+              className={`text-[13px] ${active ? 'font-ui-bold' : 'font-ui-medium'}`}
+              style={{ color: active ? '#0A0A0B' : '#A1A1AA' }}
+            >
               {o.label}
             </Text>
           </Pressable>

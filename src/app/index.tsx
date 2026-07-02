@@ -59,7 +59,7 @@ export default function Index() {
       <ScreenBackground variant="hero">
         <View className="flex-1 items-center justify-center">
           <Image source={logo} style={{ width: 240, height: 45 }} resizeMode="contain" />
-          <ActivityIndicator color="#E5342B" style={{ marginTop: 24 }} />
+          <ActivityIndicator color="#F5F5F4" style={{ marginTop: 24 }} />
         </View>
       </ScreenBackground>
     );

@@ -1,9 +1,7 @@
 import { useRef } from 'react';
 import { PanResponder, View } from 'react-native';
 
-import { hardShadow } from '@/lib/brutal';
-
-// Slider brutaliste (piste bordée + curseur carré). Valeurs ENTIÈRES uniquement.
+// Slider « Noir » : piste fine arrondie + remplissage blanc + curseur rond. Valeurs ENTIÈRES.
 export function BrutalSlider({
   value,
   min = 0,
@@ -27,7 +25,7 @@ export function BrutalSlider({
   const setFromPageX = (pageX: number) => {
     const { left, width } = geom.current;
     const ratio = Math.max(0, Math.min(1, (pageX - left) / width));
-    onChange(Math.round(min + ratio * range)); // entier
+    onChange(Math.round(min + ratio * range));
   };
 
   const pan = useRef(
@@ -52,9 +50,9 @@ export function BrutalSlider({
       style={{ height: 40, justifyContent: 'center' }}
     >
       {/* piste */}
-      <View style={{ height: 12, borderWidth: 2, borderColor: '#FFFFFF', backgroundColor: '#0A1230' }}>
+      <View style={{ height: 6, borderRadius: 999, backgroundColor: '#1C1C20' }}>
         <View
-          style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${pct}%`, backgroundColor: '#E5342B' }}
+          style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${pct}%`, borderRadius: 999, backgroundColor: '#F5F5F4' }}
         />
       </View>
       {/* curseur */}
@@ -63,13 +61,13 @@ export function BrutalSlider({
         style={{
           position: 'absolute',
           left: `${pct}%`,
-          marginLeft: -12,
-          width: 24,
-          height: 24,
+          marginLeft: -11,
+          width: 22,
+          height: 22,
+          borderRadius: 999,
           borderWidth: 2,
-          borderColor: '#FFFFFF',
-          backgroundColor: '#E5342B',
-          ...hardShadow('#0A1230', 3),
+          borderColor: '#0A0A0B',
+          backgroundColor: '#F5F5F4',
         }}
       />
     </View>

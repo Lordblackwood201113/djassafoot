@@ -6,7 +6,6 @@ import * as WebBrowser from 'expo-web-browser';
 import { useState } from 'react';
 import { ActivityIndicator, Pressable, Text, View } from 'react-native';
 
-import { hardShadow } from '@/lib/brutal';
 import { postAuthHref } from '@/store/pendingLeagueStore';
 
 WebBrowser.maybeCompleteAuthSession();
@@ -38,15 +37,14 @@ export function SocialAuth() {
     <View className="w-full gap-3">
       <Pressable
         onPress={() => run('apple', 'oauth_apple')}
-        className="w-full flex-row items-center justify-center gap-2.5 border-2 border-white bg-white px-6 py-3.5"
-        style={[{ borderRadius: 0 }, hardShadow('#0A1230', 4)]}
+        className="w-full flex-row items-center justify-center gap-2.5 rounded-xl bg-paper px-6 py-3.5"
       >
         {busy === 'apple' ? (
-          <ActivityIndicator color="#0A1230" />
+          <ActivityIndicator color="#0A0A0B" />
         ) : (
           <>
-            <Ionicons name="logo-apple" size={20} color="#0A1230" />
-            <Text className="font-display text-[14px] uppercase text-ink" style={{ letterSpacing: 0.5 }}>
+            <Ionicons name="logo-apple" size={20} color="#0A0A0B" />
+            <Text className="font-ui-semibold text-[14px] text-ink">
               Continuer avec Apple
             </Text>
           </>
@@ -55,15 +53,14 @@ export function SocialAuth() {
 
       <Pressable
         onPress={() => run('google', 'oauth_google')}
-        className="w-full flex-row items-center justify-center gap-2.5 border-2 border-white bg-surface-3 px-6 py-3.5"
-        style={[{ borderRadius: 0 }, hardShadow('#E5342B', 4)]}
+        className="w-full flex-row items-center justify-center gap-2.5 rounded-xl border border-hairline bg-surface px-6 py-3.5"
       >
         {busy === 'google' ? (
           <ActivityIndicator color="#ffffff" />
         ) : (
           <>
             <Ionicons name="logo-google" size={20} color="#ffffff" />
-            <Text className="font-display text-[14px] uppercase text-white" style={{ letterSpacing: 0.5 }}>
+            <Text className="font-ui-semibold text-[14px] text-white">
               Continuer avec Google
             </Text>
           </>

@@ -10,7 +10,7 @@ const PITCH_HEIGHT = 470;
 
 function surname(name: string) {
   const parts = name.trim().split(/\s+/);
-  return (parts[parts.length - 1] || name).toUpperCase();
+  return parts[parts.length - 1] || name;
 }
 
 // Place les titulaires d'une équipe à partir du `grid` API-Football ("ligne:colonne").
@@ -43,9 +43,9 @@ function placed(players: LineupPlayer[]) {
 
 // Couleur de la pastille de note : vert (bon), blanc (moyen), rouge (faible).
 function ratingBadge(r: number): { bg: string; fg: string } {
-  if (r >= 7) return { bg: '#3FCB86', fg: '#0A1230' };
-  if (r >= 6) return { bg: '#FFFFFF', fg: '#0A1230' };
-  return { bg: '#E5342B', fg: '#FFFFFF' };
+  if (r >= 7) return { bg: '#6FA287', fg: '#0A0A0B' };
+  if (r >= 6) return { bg: '#FFFFFF', fg: '#0A0A0B' };
+  return { bg: '#E5484D', fg: '#FFFFFF' };
 }
 
 function Jersey({
@@ -78,8 +78,8 @@ function Jersey({
     >
       <View style={{ width: 26, height: 26 }}>
         <View
-          className="h-full w-full items-center justify-center border-2 border-white"
-          style={{ borderRadius: 0, backgroundColor: accent }}
+          className="h-full w-full items-center justify-center"
+          style={{ borderRadius: 13, backgroundColor: accent }}
         >
           <Text className="font-display text-[11px]" style={{ color: fg }}>
             {p.number ?? ''}
@@ -92,8 +92,7 @@ function Jersey({
               top: -7,
               right: -9,
               backgroundColor: rb.bg,
-              borderWidth: 1,
-              borderColor: '#0A1230',
+              borderRadius: 5,
               paddingHorizontal: 2.5,
               paddingVertical: 0.5,
             }}
@@ -109,24 +108,22 @@ function Jersey({
               left: -8,
               width: 14,
               height: 14,
-              backgroundColor: '#3FCB86',
-              borderWidth: 1,
-              borderColor: '#0A1230',
+              borderRadius: 7,
+              backgroundColor: '#6FA287',
               alignItems: 'center',
               justifyContent: 'center',
             }}
           >
-            <Ionicons name="star" size={8} color="#0A1230" />
+            <Ionicons name="star" size={8} color="#0A0A0B" />
           </View>
         ) : null}
       </View>
       <View
-        style={{ marginTop: 3, maxWidth: 66, backgroundColor: '#0A1230E6', paddingHorizontal: 4, paddingVertical: 1 }}
+        style={{ marginTop: 3, maxWidth: 66, backgroundColor: '#1C1C20E6', borderRadius: 6, paddingHorizontal: 5, paddingVertical: 1.5 }}
       >
         <Text
           numberOfLines={1}
-          className="font-mono-bold text-[8px] uppercase text-white"
-          style={{ letterSpacing: 0.3 }}
+          className="font-ui-semibold text-[8px] text-white"
         >
           {surname(p.name)}
         </Text>
@@ -153,9 +150,9 @@ export function PitchView({
   const teamName = isHome ? homeName : awayName;
   const otherName = isHome ? awayName : homeName;
   const formation = isHome ? homeFormation : awayFormation;
-  // Domicile = marqueurs rouges (chiffre blanc), extérieur = marqueurs blancs (chiffre encre).
-  const accent = isHome ? '#E5342B' : '#FFFFFF';
-  const fg = isHome ? '#FFFFFF' : '#0A1230';
+  // Marqueurs joueurs = cercles blancs, numéro encre (distinction d'équipe via le sélecteur).
+  const accent = '#F5F5F4';
+  const fg = '#0A0A0B';
 
   const xi = placed(lineup.filter((p) => (isHome ? p.isHome : !p.isHome) && !p.isSub && p.grid));
   const subs = lineup.filter((p) => (isHome ? p.isHome : !p.isHome) && p.isSub);
@@ -177,18 +174,17 @@ export function PitchView({
         <Pressable
           onPress={() => setSide(isHome ? 'away' : 'home')}
           accessibilityLabel={`Voir la compo de ${frTeam(otherName)}`}
-          className="flex-row items-center gap-2 border-2 border-white bg-ink px-2.5 py-1.5"
-          style={{ borderRadius: 0 }}
+          className="flex-row items-center gap-2 rounded-full border border-hairline bg-surface-2 px-2.5 py-1.5"
         >
           <Flag name={teamName} size={20} />
-          <Text numberOfLines={1} className="font-display text-[13px] uppercase text-white">
+          <Text numberOfLines={1} className="font-display text-[13px] text-white">
             {frTeam(teamName)}
           </Text>
-          <Ionicons name="swap-horizontal" size={16} color="#9AA4CC" />
+          <Ionicons name="swap-horizontal" size={16} color="#A1A1AA" />
         </Pressable>
         {formation ? (
-          <View className="border-2 border-white/40 px-2 py-1" style={{ borderRadius: 0 }}>
-            <Text className="font-mono-bold text-[11px] text-white" style={{ letterSpacing: 1 }}>
+          <View className="rounded-full border border-hairline px-2.5 py-1">
+            <Text className="font-ui-semibold text-[11px] text-white">
               {formation}
             </Text>
           </View>
@@ -197,15 +193,12 @@ export function PitchView({
 
       {/* Homme du match (note max) */}
       {motm && motm.rating != null ? (
-        <View
-          className="flex-row items-center gap-2 border-2 border-white/25 bg-ink px-2.5 py-2"
-          style={{ borderRadius: 0 }}
-        >
-          <Ionicons name="star" size={13} color="#3FCB86" />
-          <Text className="font-mono-bold text-[9px] uppercase text-muted" style={{ letterSpacing: 0.5 }}>
+        <View className="flex-row items-center gap-2 rounded-2xl border border-hairline bg-card px-2.5 py-2">
+          <Ionicons name="star" size={13} color="#6FA287" />
+          <Text className="font-ui-semibold text-[9px] text-muted">
             Homme du match
           </Text>
-          <Text numberOfLines={1} className="flex-1 font-mono-bold text-[11px] uppercase text-white">
+          <Text numberOfLines={1} className="flex-1 font-ui-semibold text-[11px] text-white">
             {motm.name}
           </Text>
           <Text className="font-display text-[14px] text-green">{motm.rating.toFixed(1)}</Text>
@@ -214,8 +207,8 @@ export function PitchView({
 
       {/* Terrain */}
       <View
-        className="w-full overflow-hidden border-2 border-white"
-        style={{ height: PITCH_HEIGHT, borderRadius: 0, backgroundColor: '#123522' }}
+        className="w-full overflow-hidden rounded-2xl border border-hairline"
+        style={{ height: PITCH_HEIGHT, backgroundColor: '#0E4128' }}
       >
         {/* Pelouse tondue (bandes alternées) */}
         {[0, 1, 2, 3, 4, 5].map((i) => (
@@ -227,13 +220,13 @@ export function PitchView({
               right: 0,
               top: (PITCH_HEIGHT / 6) * i,
               height: PITCH_HEIGHT / 6,
-              backgroundColor: i % 2 ? '#16422B' : '#123522',
+              backgroundColor: i % 2 ? '#10492D' : '#0E4128',
             }}
           />
         ))}
 
         {/* Lignes du terrain */}
-        <View style={{ position: 'absolute', top: '50%', left: 0, right: 0, height: 2, backgroundColor: 'rgba(255,255,255,0.45)' }} />
+        <View style={{ position: 'absolute', top: '50%', left: 0, right: 0, height: 1, backgroundColor: 'rgba(255,255,255,0.18)' }} />
         <View
           style={{
             position: 'absolute',
@@ -243,17 +236,17 @@ export function PitchView({
             height: 76,
             marginLeft: -38,
             marginTop: -38,
-            borderWidth: 2,
-            borderColor: 'rgba(255,255,255,0.45)',
+            borderWidth: 1,
+            borderColor: 'rgba(255,255,255,0.18)',
             borderRadius: 38,
           }}
         />
-        <View style={{ position: 'absolute', top: '50%', left: '50%', width: 6, height: 6, marginLeft: -3, marginTop: -3, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.5)' }} />
+        <View style={{ position: 'absolute', top: '50%', left: '50%', width: 6, height: 6, marginLeft: -3, marginTop: -3, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.2)' }} />
         {/* Surfaces de réparation + 6 mètres */}
-        <View style={{ position: 'absolute', top: 0, left: '50%', width: 100, height: 44, marginLeft: -50, borderWidth: 2, borderColor: 'rgba(255,255,255,0.3)' }} />
-        <View style={{ position: 'absolute', top: 0, left: '50%', width: 50, height: 18, marginLeft: -25, borderWidth: 2, borderColor: 'rgba(255,255,255,0.28)' }} />
-        <View style={{ position: 'absolute', bottom: 0, left: '50%', width: 100, height: 44, marginLeft: -50, borderWidth: 2, borderColor: 'rgba(255,255,255,0.3)' }} />
-        <View style={{ position: 'absolute', bottom: 0, left: '50%', width: 50, height: 18, marginLeft: -25, borderWidth: 2, borderColor: 'rgba(255,255,255,0.28)' }} />
+        <View style={{ position: 'absolute', top: 0, left: '50%', width: 100, height: 44, marginLeft: -50, borderWidth: 1, borderColor: 'rgba(255,255,255,0.16)' }} />
+        <View style={{ position: 'absolute', top: 0, left: '50%', width: 50, height: 18, marginLeft: -25, borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)' }} />
+        <View style={{ position: 'absolute', bottom: 0, left: '50%', width: 100, height: 44, marginLeft: -50, borderWidth: 1, borderColor: 'rgba(255,255,255,0.16)' }} />
+        <View style={{ position: 'absolute', bottom: 0, left: '50%', width: 50, height: 18, marginLeft: -25, borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)' }} />
 
         {xi.map(({ p, x, y }, i) => (
           <Jersey key={i} p={p} x={x} y={y} accent={accent} fg={fg} isMotm={!!motm && samePlayer(p, motm)} />
@@ -262,10 +255,9 @@ export function PitchView({
 
       {/* Remplaçants de l'équipe affichée */}
       {subs.length ? (
-        <View className="mt-1 border-t-2 border-white/15 pt-3">
+        <View className="mt-1 border-t border-line pt-3">
           <View className="mb-2 flex-row items-center gap-1.5">
-            <View className="h-2 w-2 bg-red" />
-            <Text className="font-mono-bold text-[10px] uppercase text-muted" style={{ letterSpacing: 1 }}>
+            <Text className="font-ui-semibold text-[10px] text-muted">
               Remplaçants · {frTeam(teamName)}
             </Text>
           </View>
@@ -274,7 +266,7 @@ export function PitchView({
               <Text
                 key={i}
                 numberOfLines={1}
-                className="font-mono text-[10px] uppercase text-white/80"
+                className="font-ui-medium text-[10px] text-white/80"
                 style={{ width: '50%' }}
               >
                 {p.number != null ? `${p.number}  ` : ''}

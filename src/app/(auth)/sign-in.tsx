@@ -56,10 +56,11 @@ export default function SignIn() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          {/* En-tête brutaliste */}
-          <View className="flex-row items-center gap-2.5">
-            <View className="h-3.5 w-3.5 bg-red" />
-            <Text className="font-display text-3xl uppercase text-white">Se connecter</Text>
+          <View className="gap-1">
+            <Text className="font-display text-3xl text-white">Se connecter</Text>
+            <Text className="font-ui-medium text-[13px] text-muted">
+              Retrouve tes pronos et tes jetons.
+            </Text>
           </View>
 
           <TextField
@@ -79,7 +80,7 @@ export default function SignIn() {
           />
 
           {error ? (
-            <Text className="font-mono-bold text-[12px] uppercase text-red">{error}</Text>
+            <Text className="font-ui-semibold text-[12px] text-red">{error}</Text>
           ) : null}
 
           <BrutalButton label="Connexion" variant="primary" onPress={onSignIn} loading={loading} />
@@ -88,8 +89,9 @@ export default function SignIn() {
           <SocialAuth />
 
           <Link href="/sign-up" className="text-center">
-            <Text className="font-mono text-[12px] uppercase text-muted">
-              Pas de compte ? <Text className="font-mono-bold text-red">Créer un compte</Text>
+            <Text className="font-ui-medium text-[13px] text-muted">
+              Pas de compte ?{' '}
+              <Text className="font-ui-semibold text-white underline">Créer un compte</Text>
             </Text>
           </Link>
         </ScrollView>

@@ -24,15 +24,14 @@ export default function Pronos() {
         <AppHeader />
 
         <View className="flex-row items-center gap-2 px-5 pb-3 pt-1">
-          <View className="h-2.5 w-2.5 bg-red" style={{ borderRadius: 0 }} />
-          <Text className="font-display text-2xl uppercase text-white">Mes pronos</Text>
+          <Text className="font-display text-2xl text-white">Mes pronos</Text>
         </View>
 
         <View className="mx-5 mb-4">
           <BrutalSegment
             options={[
-              { key: 'live', label: 'EN COURS' },
-              { key: 'done', label: 'TERMINÉS' },
+              { key: 'live', label: 'En cours' },
+              { key: 'done', label: 'Terminés' },
             ]}
             value={tab}
             onChange={setTab}
@@ -40,14 +39,14 @@ export default function Pronos() {
         </View>
 
         {bets === undefined ? (
-          <Text className="mt-16 text-center font-mono uppercase text-sm text-muted">Chargement…</Text>
+          <Text className="mt-16 text-center font-ui-medium text-sm text-muted">Chargement…</Text>
         ) : filtered.length === 0 ? (
           <View className="flex-1 items-center justify-center px-10">
             <Text className="text-4xl">🪙</Text>
-            <Text className="mt-3 text-center font-display text-base uppercase text-white">
+            <Text className="mt-3 text-center font-display text-base text-white">
               {tab === 'live' ? 'Aucun prono en cours' : 'Aucun prono terminé'}
             </Text>
-            <Text className="mt-1.5 text-center font-mono text-xs uppercase text-muted">
+            <Text className="mt-1.5 text-center font-ui-medium text-xs text-muted">
               Va sur un match et tente ta chance !
             </Text>
           </View>

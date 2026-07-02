@@ -20,22 +20,22 @@ export default function PronoConfirmed() {
   return (
     <ScreenBackground variant="success">
       <View className="flex-1 items-center justify-center px-8">
-        <BrutalBox shadow="#E5342B" offset={7} borderWidth={2} className="h-24 w-24 items-center justify-center bg-green">
-          <Ionicons name="checkmark" size={52} color="#0A1230" />
+        <BrutalBox shadow={false} borderWidth={1} className="h-24 w-24 items-center justify-center rounded-full border-hairline bg-green">
+          <Ionicons name="checkmark" size={52} color="#0A0A0B" />
         </BrutalBox>
 
-        <Text className="mt-8 text-center font-display text-3xl uppercase text-white" style={{ letterSpacing: 0.5 }}>
+        <Text className="mt-8 text-center font-display text-3xl text-white">
           Pari enregistré
         </Text>
-        <Text className="mt-2 text-center font-mono text-[12px] uppercase text-muted" style={{ letterSpacing: 0.5 }}>
+        <Text className="mt-2 text-center font-ui-medium text-[12px] text-muted">
           Ton combiné est enregistré. Bonne chance !
         </Text>
 
-        <BrutalBox shadow="#3FCB86" offset={6} borderWidth={2} className="mt-8 w-full bg-surface-3 px-5 py-4">
+        <BrutalBox shadow={false} borderWidth={1} className="mt-8 w-full rounded-2xl border-hairline bg-card px-5 py-4">
           <Row label="Mise" value={`🪙 ${stake ?? 0}`} />
-          <View className="my-3 h-0.5 bg-white/20" />
+          <View className="my-3 h-px bg-line" />
           <Row label="Cote totale" value={`${odds ?? '—'}`} />
-          <View className="my-3 h-0.5 bg-white/20" />
+          <View className="my-3 h-px bg-line" />
           <Row label="Gain potentiel" value={`🪙 ${payout ?? 0}`} highlight />
         </BrutalBox>
       </View>
@@ -51,7 +51,7 @@ export default function PronoConfirmed() {
 function Row({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
   return (
     <View className="flex-row items-center justify-between">
-      <Text className="font-mono-bold text-[12px] uppercase text-muted" style={{ letterSpacing: 0.5 }}>
+      <Text className="font-ui-semibold text-[12px] text-muted">
         {label}
       </Text>
       <Text className={`font-display text-[18px] ${highlight ? 'text-green' : 'text-white'}`}>{value}</Text>
