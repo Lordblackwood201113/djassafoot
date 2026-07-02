@@ -19,6 +19,7 @@ import { ScreenBackground } from '@/components/ScreenBackground';
 import { EVENTS, track } from '@/lib/analytics';
 import { COMP_NAME, formatHeroDate, phaseHeading } from '@/lib/format';
 import { frTeam } from '@/lib/teamNames';
+import { usePronoDraft } from '@/store/pronoDraftStore';
 
 const TWO_HOURS = 2 * 60 * 60 * 1000;
 
@@ -30,6 +31,7 @@ export default function MatchDetail() {
   const myBets = useQuery(api.bets.forMatch, id ? { matchId: id as Id<'matches'> } : 'skip');
   const details = useQuery(api.matchDetails.getDetails, id ? { matchId: id as Id<'matches'> } : 'skip');
   const syncDetails = useAction(api.matchDetails.syncDetails);
+  const resetDraft = usePronoDraft((s) => s.reset);
   const [now] = useState(() => Date.now());
 
   const tracked = useRef(false);
@@ -161,7 +163,10 @@ export default function MatchDetail() {
                 <BrutalButton
                   label={myBets && myBets.length > 0 ? 'Ajouter un prono' : 'Pronostiquer'}
                   variant="primary"
-                  onPress={() => router.push(`/prono/${match._id}`)}
+                  onPress={() => {
+                    resetDraft(); // nouveau pari : repart d'un brouillon vierge (jamais en mode édition)
+                    router.push(`/prono/${match._id}`);
+                  }}
                 />
                 {myBets && myBets.length > 0 ? (
                   <BrutalBox shadow={false} borderWidth={1} className="rounded-2xl bg-card px-4 py-3">

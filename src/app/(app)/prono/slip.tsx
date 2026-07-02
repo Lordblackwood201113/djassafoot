@@ -2,9 +2,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { api } from '@convex/_generated/api';
 import type { Id } from '@convex/_generated/dataModel';
 import { validateLegs } from '@convex/betRules';
+import { exactOdds } from '@convex/oddsShared';
 import { useMutation, useQuery } from 'convex/react';
 import { useRouter } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -15,7 +16,7 @@ import { BrutalButton } from '@/components/brutal/BrutalButton';
 import { BrutalSlider } from '@/components/brutal/BrutalSlider';
 import { EVENTS, track } from '@/lib/analytics';
 import { frTeam } from '@/lib/teamNames';
-import { usePronoDraft } from '@/store/pronoDraftStore';
+import { usePronoDraft, type Leg } from '@/store/pronoDraftStore';
 
 const MARKET_LABEL: Record<string, string> = {
   result_1x2: 'Résultat',
@@ -27,37 +28,61 @@ const MARKET_LABEL: Record<string, string> = {
 export default function BetSlip() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { matchId, legs, stake, setStake, removeLeg } = usePronoDraft();
+  const { matchId, legs, stake, setStake, removeLeg, editingBetId, originalStake } = usePronoDraft();
   const match = useQuery(api.matches.byId, matchId ? { id: matchId as Id<'matches'> } : 'skip');
   const me = useQuery(api.users.current);
   const place = useMutation(api.bets.place);
+  const update = useMutation(api.bets.update);
 
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const legsArr = Object.values(legs);
-  const totalOdds = useMemo(
-    () => Math.round(legsArr.reduce((p, l) => p * l.odds, 1) * 100) / 100,
-    [legsArr],
+  // Cotes fraîches du match : le serveur re-price au moment de valider, donc on affiche les cotes
+  // actuelles (indispensable en édition, où les cotes stockées peuvent avoir bougé). Fallback sur
+  // la cote stockée tant que la requête charge.
+  const oddsData = useQuery(
+    api.bets.oddsForMatch,
+    matchId ? { matchId: matchId as Id<'matches'> } : 'skip',
   );
+  const oddOf = (l: Leg): number => {
+    if (!oddsData) return l.odds;
+    switch (l.market) {
+      case 'result_1x2':
+        return l.pick === 'home' ? oddsData.home : l.pick === 'away' ? oddsData.away : oddsData.draw;
+      case 'over_under_2_5':
+        return l.pick === 'over' ? oddsData.over : oddsData.under;
+      case 'btts':
+        return l.pick === 'yes' ? oddsData.bttsYes : oddsData.bttsNo;
+      case 'exact_score': {
+        const [h, a] = l.pick.split('-').map((n) => parseInt(n, 10));
+        return exactOdds(oddsData.lambdas, h || 0, a || 0);
+      }
+      default:
+        return l.odds;
+    }
+  };
+
+  const legsArr = Object.values(legs);
+  const totalOdds = Math.round(legsArr.reduce((p, l) => p * oddOf(l), 1) * 100) / 100;
   const balance = me?.flames ?? 0;
+  // En édition, l'ancienne mise est remboursée → elle s'ajoute au solde réellement disponible.
+  const spendable = balance + (editingBetId ? originalStake : 0);
   const payout = Math.round(stake * totalOdds);
   // Anti-paris-illégaux : la combinaison doit être logiquement possible (miroir du serveur).
   const legality = validateLegs(legsArr.map((l) => ({ market: l.market, pick: l.pick })));
   const canValidate =
-    legsArr.length > 0 && stake > 0 && stake <= balance && legality.ok && !busy;
+    legsArr.length > 0 && stake > 0 && stake <= spendable && legality.ok && !busy;
 
   const submit = async () => {
     if (!matchId || !canValidate) return;
     setBusy(true);
     setError(null);
     try {
-      const res = await place({
-        matchId: matchId as Id<'matches'>,
-        stake,
-        legs: legsArr.map((l) => ({ market: l.market, pick: l.pick, label: l.label })),
-      });
-      track(EVENTS.predictionPlaced, {
+      const legsPayload = legsArr.map((l) => ({ market: l.market, pick: l.pick, label: l.label }));
+      const res = editingBetId
+        ? await update({ betId: editingBetId as Id<'bets'>, stake, legs: legsPayload })
+        : await place({ matchId: matchId as Id<'matches'>, stake, legs: legsPayload });
+      track(editingBetId ? EVENTS.predictionEdited : EVENTS.predictionPlaced, {
         matchId: matchId as string,
         stake,
         legs: legsArr.length,
@@ -65,7 +90,7 @@ export default function BetSlip() {
         potentialPayout: res.potentialPayout,
       });
       router.replace(
-        `/prono/confirmed?odds=${res.totalOdds}&payout=${res.potentialPayout}&stake=${stake}`,
+        `/prono/confirmed?odds=${res.totalOdds}&payout=${res.potentialPayout}&stake=${stake}${editingBetId ? '&edited=1' : ''}`,
       );
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Erreur lors de la pose du pari');
@@ -84,7 +109,7 @@ export default function BetSlip() {
             <Ionicons name="chevron-back" size={22} color="#ffffff" />
           </Pressable>
           <Text className="font-display text-lg text-white">
-            Mon pari
+            {editingBetId ? 'Modifier mon pari' : 'Mon pari'}
           </Text>
           <FlameBalance />
         </View>
@@ -116,7 +141,7 @@ export default function BetSlip() {
                     </Text>
                     <Text className="mt-1 font-ui-semibold text-[13px] text-white">{l.label}</Text>
                   </View>
-                  <Text className="mr-3 font-display text-[15px] text-white">{l.odds.toFixed(2)}</Text>
+                  <Text className="mr-3 font-display text-[15px] text-white">{oddOf(l).toFixed(2)}</Text>
                   <Pressable
                     onPress={() => removeLeg(l.market)}
                     className="h-7 w-7 items-center justify-center rounded-[13px] border border-hairline bg-surface-2"
@@ -144,7 +169,9 @@ export default function BetSlip() {
               <Text className="font-ui-semibold text-[11px] text-muted">
                 Ta mise
               </Text>
-              <Text className="font-ui-medium text-[11px] text-muted">Solde : 🪙 {balance}</Text>
+              <Text className="font-ui-medium text-[11px] text-muted">
+                {editingBetId ? `Dispo : 🪙 ${spendable}` : `Solde : 🪙 ${balance}`}
+              </Text>
             </View>
 
             <View className="mt-2 flex-row items-center gap-2">
@@ -153,7 +180,7 @@ export default function BetSlip() {
                 value={stake ? String(stake) : ''}
                 onChangeText={(t) => {
                   const n = parseInt(t.replace(/[^0-9]/g, ''), 10);
-                  setStake(Math.min(balance, Number.isFinite(n) ? n : 0));
+                  setStake(Math.min(spendable, Number.isFinite(n) ? n : 0));
                 }}
                 keyboardType="number-pad"
                 placeholder="0"
@@ -162,7 +189,7 @@ export default function BetSlip() {
                 style={{ minWidth: 0 }}
               />
               <Pressable
-                onPress={() => setStake(balance)}
+                onPress={() => setStake(spendable)}
                 className="items-center justify-center rounded-xl border border-hairline bg-surface-2 px-4 py-3"
               >
                 <Text className="font-ui-semibold text-[12px] text-white">Max</Text>
@@ -170,7 +197,7 @@ export default function BetSlip() {
             </View>
 
             <View className="mt-4">
-              <BrutalSlider value={Math.min(stake, balance)} min={0} max={Math.max(1, balance)} onChange={setStake} />
+              <BrutalSlider value={Math.min(stake, spendable)} min={0} max={Math.max(1, spendable)} onChange={setStake} />
             </View>
           </BrutalBox>
 
@@ -199,12 +226,16 @@ export default function BetSlip() {
             onPress={submit}
             label={
               busy
-                ? 'Validation…'
+                ? editingBetId
+                  ? 'Enregistrement…'
+                  : 'Validation…'
                 : !legality.ok && legsArr.length > 0
                   ? 'Combinaison invalide'
-                  : stake > balance
+                  : stake > spendable
                     ? 'Solde insuffisant'
-                    : `Valider mon pari · ${stake} 🪙`
+                    : editingBetId
+                      ? `Enregistrer · ${stake} 🪙`
+                      : `Valider mon pari · ${stake} 🪙`
             }
           />
         </View>

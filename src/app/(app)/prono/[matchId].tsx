@@ -128,9 +128,17 @@ export default function PronoScreen() {
   const match = useQuery(api.matches.byId, matchId ? { id } : 'skip');
   const odds = useQuery(api.bets.oddsForMatch, matchId ? { matchId: id } : 'skip');
 
-  const { legs, toggleLeg, setLeg, setMatch } = usePronoDraft();
-  const [hg, setHg] = useState(1);
-  const [ag, setAg] = useState(1);
+  const { legs, toggleLeg, setLeg, setMatch, editingBetId } = usePronoDraft();
+  // En édition, les steppers du score exact partent de la sélection chargée (lecture unique du
+  // brouillon déjà rempli par `loadForEdit` avant la navigation).
+  const [hg, setHg] = useState(() => {
+    const ex = usePronoDraft.getState().legs['exact_score'];
+    return ex ? parseInt(ex.pick.split('-')[0] ?? '', 10) || 0 : 1;
+  });
+  const [ag, setAg] = useState(() => {
+    const ex = usePronoDraft.getState().legs['exact_score'];
+    return ex ? parseInt(ex.pick.split('-')[1] ?? '', 10) || 0 : 1;
+  });
 
   useEffect(() => {
     if (matchId) setMatch(matchId);
@@ -195,7 +203,7 @@ export default function PronoScreen() {
           </Pressable>
           <View className="flex-1">
             <Text className="font-display text-base text-white">
-              Mon pronostic
+              {editingBetId ? 'Modifier mon prono' : 'Mon pronostic'}
             </Text>
           </View>
         </View>

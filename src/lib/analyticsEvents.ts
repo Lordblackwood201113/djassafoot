@@ -6,6 +6,7 @@ export const EVENTS = {
   userSignedUp: 'user_signed_up',
   userSignedIn: 'user_signed_in',
   predictionPlaced: 'prediction_placed',
+  predictionEdited: 'prediction_edited',
   matchViewed: 'match_viewed',
   dailyBonusClaimed: 'daily_bonus_claimed',
   friendAdded: 'friend_added',

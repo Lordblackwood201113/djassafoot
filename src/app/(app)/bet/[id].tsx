@@ -3,6 +3,7 @@ import { api } from '@convex/_generated/api';
 import type { Id } from '@convex/_generated/dataModel';
 import { useQuery } from 'convex/react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useState } from 'react';
 import { Platform, Pressable, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -12,6 +13,7 @@ import { BetCard, type Bet } from '@/components/prono/BetCard';
 import { ScreenBackground } from '@/components/ScreenBackground';
 import { EVENTS, track } from '@/lib/analytics';
 import { appOrigin, shareLink } from '@/lib/share';
+import { usePronoDraft } from '@/store/pronoDraftStore';
 
 // En-tête de résultat selon le statut du pari.
 const HERO: Record<
@@ -29,6 +31,22 @@ export default function BetDetail() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const bet = useQuery(api.bets.byId, id ? { id: id as Id<'bets'> } : 'skip') as Bet | null | undefined;
+  const loadForEdit = usePronoDraft((s) => s.loadForEdit);
+  const [now] = useState(() => Date.now());
+
+  // On peut modifier un pari tant qu'il est en attente ET que le match n'a pas commencé.
+  const canEdit =
+    !!bet &&
+    bet.status === 'pending' &&
+    bet.match != null &&
+    bet.match.status === 'scheduled' &&
+    bet.match.kickoff > now;
+
+  const startEdit = () => {
+    if (!bet) return;
+    loadForEdit({ _id: bet._id, matchId: bet.matchId, stake: bet.stake, legs: bet.legs });
+    router.push(`/prono/${bet.matchId}`);
+  };
 
   const status = bet?.status ?? 'pending';
   const hero = HERO[status] ?? HERO.pending;
@@ -103,8 +121,11 @@ export default function BetDetail() {
             {/* Détail du combiné (drapeaux, résultat par pari, mise, gain) */}
             <BetCard bet={bet} />
 
+            {canEdit ? (
+              <BrutalButton variant="primary" label="Modifier mon pari" onPress={startEdit} />
+            ) : null}
             <BrutalButton
-              variant="primary"
+              variant={canEdit ? 'light' : 'primary'}
               label={status === 'won' ? 'Partager ma victoire' : 'Partager'}
               onPress={onShare}
             />

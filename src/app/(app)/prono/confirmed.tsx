@@ -10,7 +10,13 @@ import { usePronoDraft } from '@/store/pronoDraftStore';
 
 export default function PronoConfirmed() {
   const router = useRouter();
-  const { odds, payout, stake } = useLocalSearchParams<{ odds: string; payout: string; stake: string }>();
+  const { odds, payout, stake, edited } = useLocalSearchParams<{
+    odds: string;
+    payout: string;
+    stake: string;
+    edited?: string;
+  }>();
+  const isEdit = edited === '1';
   const reset = usePronoDraft((s) => s.reset);
 
   useEffect(() => {
@@ -25,10 +31,10 @@ export default function PronoConfirmed() {
         </BrutalBox>
 
         <Text className="mt-8 text-center font-display text-3xl text-white">
-          Pari enregistré
+          {isEdit ? 'Pari modifié' : 'Pari enregistré'}
         </Text>
         <Text className="mt-2 text-center font-ui-medium text-[12px] text-muted">
-          Ton combiné est enregistré. Bonne chance !
+          {isEdit ? 'Ton pari a été mis à jour. Bonne chance !' : 'Ton combiné est enregistré. Bonne chance !'}
         </Text>
 
         <BrutalBox shadow={false} borderWidth={1} className="mt-8 w-full rounded-2xl border-hairline bg-card px-5 py-4">

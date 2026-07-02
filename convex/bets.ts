@@ -297,3 +297,73 @@ export const place = mutation({
     return { betId, totalOdds, potentialPayout, newBalance: user.flames - stake };
   },
 });
+
+// Modifie un pari existant TANT QUE le match n'a pas commencé (sinon c'est verrouillé).
+// Rembourse l'ancienne mise, revalide, recalcule les cotes (autoritatif) et re-débite le delta.
+export const update = mutation({
+  args: {
+    betId: v.id('bets'),
+    stake: v.number(),
+    legs: v.array(v.object({ market: v.string(), pick: v.string(), label: v.string() })),
+  },
+  handler: async (ctx, { betId, stake, legs }) => {
+    const user = await currentUser(ctx);
+    if (!user) throw new Error('Non authentifié');
+    const bet = await ctx.db.get(betId);
+    if (!bet || bet.userId !== user._id) throw new Error('Pari introuvable');
+    if (bet.status !== 'pending') throw new Error('Ce pari est déjà réglé, impossible de le modifier');
+    const match = await ctx.db.get(bet.matchId);
+    if (!match) throw new Error('Match introuvable');
+    if (match.status !== 'scheduled' || match.kickoff <= Date.now())
+      throw new Error('Ce match a déjà commencé');
+    if (legs.length === 0) throw new Error('Aucune sélection');
+    if (!Number.isFinite(stake) || stake <= 0 || !Number.isInteger(stake))
+      throw new Error('Mise invalide');
+    // Le solde disponible inclut le remboursement de l'ancienne mise.
+    if (stake > user.flames + bet.stake) throw new Error('Solde de jetons insuffisant');
+
+    // Refuse toute combinaison logiquement impossible (contradictoire) ou corrélée au score exact.
+    const legality = validateLegs(legs);
+    if (!legality.ok) throw new Error(legality.reason);
+
+    const { odds, lambdas } = await resolveOdds(ctx, match);
+    const seen = new Set<string>();
+    const computed = legs.map((leg) => {
+      if (!MARKETS.includes(leg.market as Market)) throw new Error(`Marché inconnu : ${leg.market}`);
+      if (seen.has(leg.market)) throw new Error('Un seul choix par marché');
+      seen.add(leg.market);
+      return {
+        market: leg.market as Market,
+        pick: leg.pick,
+        label: leg.label,
+        odds: legOdds(odds, lambdas, leg.market, leg.pick),
+      };
+    });
+
+    const totalOdds = round2(computed.reduce((p, x) => p * x.odds, 1));
+    const potentialPayout = Math.round(stake * totalOdds);
+    // Rembourse l'ancienne mise puis débite la nouvelle (solde jamais négatif : stake ≤ flames + bet.stake).
+    const newBalance = user.flames + bet.stake - stake;
+
+    await ctx.db.patch(user._id, { flames: newBalance });
+    await ctx.db.patch(betId, { legs: computed, stake, totalOdds, potentialPayout });
+
+    // Garde le journal d'audit cohérent avec le solde : ajuste la transaction de mise d'origine.
+    const txns = await ctx.db
+      .query('flameTransactions')
+      .withIndex('by_user', (q) => q.eq('userId', user._id))
+      .collect();
+    const stakeTx = txns.find((t) => t.refId === betId && t.reason === 'prediction_stake');
+    if (stakeTx) await ctx.db.patch(stakeTx._id, { amount: -stake });
+    else
+      await ctx.db.insert('flameTransactions', {
+        userId: user._id,
+        amount: -stake,
+        reason: 'prediction_stake',
+        refId: betId,
+        createdAt: Date.now(),
+      });
+
+    return { betId, totalOdds, potentialPayout, newBalance };
+  },
+});
