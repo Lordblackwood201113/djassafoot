@@ -157,7 +157,6 @@ export const byId = query({
     const m = await ctx.db.get(bet.matchId);
     return {
       ...bet,
-      shareImageUrl: bet.shareImageId ? await ctx.storage.getUrl(bet.shareImageId) : null,
       match: m
         ? {
             homeName: m.homeName,
@@ -197,38 +196,7 @@ export const publicShare = query({
       awayPenalty: m?.awayPenalty ?? null,
       matchStatus: m?.status ?? 'scheduled',
       username: u?.username ?? null,
-      shareImageUrl: bet.shareImageId ? await ctx.storage.getUrl(bet.shareImageId) : null,
     };
-  },
-});
-
-// URL d'upload signée pour la carte de partage (le proprio du pari uploade l'image générée).
-export const generateShareUploadUrl = mutation({
-  args: {},
-  handler: async (ctx) => {
-    const user = await currentUser(ctx);
-    if (!user) throw new Error('Non authentifié');
-    return await ctx.storage.generateUploadUrl();
-  },
-});
-
-// Associe l'image de partage à un pari (proprio uniquement). Supprime l'ancienne si présente.
-export const setShareImage = mutation({
-  args: { betId: v.id('bets'), storageId: v.id('_storage') },
-  handler: async (ctx, { betId, storageId }) => {
-    const user = await currentUser(ctx);
-    if (!user) throw new Error('Non authentifié');
-    const bet = await ctx.db.get(betId);
-    if (!bet || bet.userId !== user._id) throw new Error('Pari introuvable');
-    if (bet.shareImageId && bet.shareImageId !== storageId) {
-      try {
-        await ctx.storage.delete(bet.shareImageId);
-      } catch {
-        /* déjà supprimée */
-      }
-    }
-    await ctx.db.patch(betId, { shareImageId: storageId });
-    return { ok: true };
   },
 });
 
