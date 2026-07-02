@@ -124,6 +124,8 @@ export default defineSchema({
     payout: v.optional(v.number()),
     createdAt: v.number(),
     settledAt: v.optional(v.number()),
+    // Carte de partage (image PNG) générée par l'app puis stockée — sert d'OG image du lien.
+    shareImageId: v.optional(v.id('_storage')),
   })
     .index('by_user', ['userId'])
     .index('by_match', ['matchId'])

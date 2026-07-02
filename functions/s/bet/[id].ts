@@ -28,6 +28,7 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
     homeScore?: number | null;
     awayScore?: number | null;
     matchStatus?: string;
+    shareImageUrl?: string | null;
   } | null = null;
   try {
     bet = await new ConvexHttpClient(ctx.env.EXPO_PUBLIC_CONVEX_URL).query(api.bets.publicShare, {
@@ -46,8 +47,10 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
         ? `Mon prono ${bet.home ?? ''} ${score} ${bet.away ?? ''} sur Djassa Foot`
         : 'Djassa Foot — Pronos entre amis';
   const desc = 'Pronostique la Coupe du Monde 2026 et défie tes amis dans des ligues privées.';
-  const img = `${origin}/og/bet/${encodeURIComponent(id)}`;
-  const appUrl = `${origin}/bet/${encodeURIComponent(id)}`;
+  // Image OG = carte pré-générée par l'app et stockée dans Convex ; sinon image générique.
+  const img = bet?.shareImageUrl || `${origin}/og-image.jpg`;
+  // L'humain est redirigé vers la page PUBLIQUE (visible sans compte), pas la route auth-gated.
+  const appUrl = `${origin}/partage/${encodeURIComponent(id)}`;
 
   const html = `<!DOCTYPE html><html lang="fr"><head>
 <meta charset="utf-8">
