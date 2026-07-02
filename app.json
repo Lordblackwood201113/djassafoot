@@ -43,8 +43,7 @@
         {
           "photosPermission": "Djassa Foot accède à tes photos pour choisir le logo de ta ligue."
         }
-      ],
-      "expo-sharing"
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

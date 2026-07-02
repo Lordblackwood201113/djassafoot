@@ -173,6 +173,33 @@ export const byId = query({
   },
 });
 
+// Données PUBLIQUES d'un pari pour le partage réseaux (carte OG dynamique). PAS d'auth :
+// l'id d'un pari est non devinable et l'utilisateur choisit de partager ce résultat.
+// Renvoie uniquement l'affichage (aucune donnée sensible / interne / d'autrui).
+export const publicShare = query({
+  args: { id: v.id('bets') },
+  handler: async (ctx, { id }) => {
+    const bet = await ctx.db.get(id);
+    if (!bet) return null;
+    const m = await ctx.db.get(bet.matchId);
+    const u = await ctx.db.get(bet.userId);
+    return {
+      status: bet.status,
+      payout: bet.payout ?? bet.potentialPayout ?? 0,
+      stake: bet.stake,
+      legs: bet.legs.map((l) => ({ label: l.label, result: l.result ?? null })),
+      home: m?.homeName ?? '',
+      away: m?.awayName ?? '',
+      homeScore: m?.homeScore ?? null,
+      awayScore: m?.awayScore ?? null,
+      homePenalty: m?.homePenalty ?? null,
+      awayPenalty: m?.awayPenalty ?? null,
+      matchStatus: m?.status ?? 'scheduled',
+      username: u?.username ?? null,
+    };
+  },
+});
+
 // Paris d'un utilisateur donné (profil public — visible par tout membre connecté).
 export const forUser = query({
   args: { userId: v.id('users') },
