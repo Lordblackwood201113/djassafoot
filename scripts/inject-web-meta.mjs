@@ -23,7 +23,8 @@ html = html.replace(/<link[^>]*rel=["']?(shortcut )?(icon|apple-touch-icon)["']?
 
 const tags = `${MARKER}
 <meta name="description" content="${DESC}">
-<meta name="theme-color" content="#0A1230">
+<meta name="theme-color" content="#0A0A0B">
+<style>html,body,#root{background-color:#0A0A0B;}</style>
 <link rel="icon" type="image/png" sizes="256x256" href="/icon.png?v=${V}">
 <link rel="icon" type="image/png" sizes="48x48" href="/favicon.png?v=${V}">
 <link rel="shortcut icon" href="/favicon.png?v=${V}">

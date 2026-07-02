@@ -12,8 +12,6 @@
 @font-face { font-family: 'Inter_500Medium'; src: url('/fonts/Inter_500Medium.ttf') format('truetype'); font-display: swap; }
 @font-face { font-family: 'Inter_600SemiBold'; src: url('/fonts/Inter_600SemiBold.ttf') format('truetype'); font-display: swap; }
 @font-face { font-family: 'Inter_700Bold'; src: url('/fonts/Inter_700Bold.ttf') format('truetype'); font-display: swap; }
-@font-face { font-family: 'SpaceMono_400Regular'; src: url('/fonts/SpaceMono_400Regular.ttf') format('truetype'); font-display: swap; }
-@font-face { font-family: 'SpaceMono_700Bold'; src: url('/fonts/SpaceMono_700Bold.ttf') format('truetype'); font-display: swap; }
 /* ⚠️ Le nom de famille DOIT correspondre exactement à celui utilisé par @expo/vector-icons
    (2e argument de createIconSet) : 'ionicons' et 'material-community'. Sinon la police n'est
    pas appliquée et les glyphes s'affichent en vide (ex. l'icône « tournament » du bracket). */

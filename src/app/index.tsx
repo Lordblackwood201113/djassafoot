@@ -115,7 +115,7 @@ export default function Index() {
           </Text>
         </View>
 
-        {/* Footer — CTA brutalistes (seuls éléments conservés en brutalist) */}
+        {/* Footer — actions principales */}
         <View className="gap-3 px-6 pb-11">
           <BrutalButton label="Commencer" variant="light" onPress={() => router.push('/sign-up')} />
           <BrutalButton

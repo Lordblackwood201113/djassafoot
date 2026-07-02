@@ -14,10 +14,6 @@ import {
   Sora_700Bold,
   Sora_800ExtraBold,
 } from '@expo-google-fonts/sora';
-import {
-  SpaceMono_400Regular,
-  SpaceMono_700Bold,
-} from '@expo-google-fonts/space-mono';
 import { ConvexReactClient } from 'convex/react';
 import { ConvexProviderWithClerk } from 'convex/react-clerk';
 import { useFonts } from 'expo-font';
@@ -75,8 +71,6 @@ export default function RootLayout() {
     Inter_500Medium,
     Inter_600SemiBold,
     Inter_700Bold,
-    SpaceMono_400Regular,
-    SpaceMono_700Bold,
     // Polices d'icônes (sinon tab bar / retour / cloche s'affichent en carrés sur le web).
     ...Ionicons.font,
     ...MaterialCommunityIcons.font,
