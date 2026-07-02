@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { api } from '@convex/_generated/api';
 import type { Id } from '@convex/_generated/dataModel';
-import { useQuery } from 'convex/react';
+import { useMutation, useQuery } from 'convex/react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Platform, Pressable, ScrollView, Text, View } from 'react-native';
@@ -46,6 +46,24 @@ export default function BetDetail() {
     if (!bet) return;
     loadForEdit({ _id: bet._id, matchId: bet.matchId, stake: bet.stake, legs: bet.legs });
     router.push(`/prono/${bet.matchId}`);
+  };
+
+  const cancelBet = useMutation(api.bets.cancel);
+  const [confirmCancel, setConfirmCancel] = useState(false);
+  const [canceling, setCanceling] = useState(false);
+  const [cancelError, setCancelError] = useState<string | null>(null);
+
+  const doCancel = async () => {
+    if (!bet) return;
+    setCanceling(true);
+    setCancelError(null);
+    try {
+      await cancelBet({ betId: bet._id });
+      router.replace('/pronos');
+    } catch (e) {
+      setCancelError(e instanceof Error ? e.message : 'Erreur lors de l’annulation');
+      setCanceling(false);
+    }
   };
 
   const status = bet?.status ?? 'pending';
@@ -122,7 +140,28 @@ export default function BetDetail() {
             <BetCard bet={bet} />
 
             {canEdit ? (
-              <BrutalButton variant="primary" label="Modifier mon pari" onPress={startEdit} />
+              <>
+                <BrutalButton variant="primary" label="Modifier mon pari" onPress={startEdit} />
+                {confirmCancel ? (
+                  <View className="gap-2 rounded-2xl border border-hairline bg-card p-4">
+                    <Text className="text-center font-ui-medium text-[12px] text-muted">
+                      Ta mise de 🪙{bet.stake} te sera remboursée. Annuler ce pari ?
+                    </Text>
+                    {cancelError ? (
+                      <Text className="text-center font-ui-semibold text-[12px] text-red">{cancelError}</Text>
+                    ) : null}
+                    <BrutalButton
+                      variant="primary"
+                      loading={canceling}
+                      label="Oui, annuler mon pari"
+                      onPress={doCancel}
+                    />
+                    <BrutalButton variant="ghost" label="Non, garder" onPress={() => setConfirmCancel(false)} />
+                  </View>
+                ) : (
+                  <BrutalButton variant="ghost" label="Annuler le pari" onPress={() => setConfirmCancel(true)} />
+                )}
+              </>
             ) : null}
             <BrutalButton
               variant={canEdit ? 'light' : 'primary'}

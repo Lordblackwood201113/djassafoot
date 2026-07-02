@@ -367,3 +367,34 @@ export const update = mutation({
     return { betId, totalOdds, potentialPayout, newBalance };
   },
 });
+
+// Annule un pari existant TANT QUE le match n'a pas commencé (sinon c'est verrouillé).
+// Rembourse la mise et supprime le pari + sa transaction de mise (comme s'il n'avait pas eu lieu).
+export const cancel = mutation({
+  args: { betId: v.id('bets') },
+  handler: async (ctx, { betId }) => {
+    const user = await currentUser(ctx);
+    if (!user) throw new Error('Non authentifié');
+    const bet = await ctx.db.get(betId);
+    if (!bet || bet.userId !== user._id) throw new Error('Pari introuvable');
+    if (bet.status !== 'pending') throw new Error('Ce pari est déjà réglé, impossible de l’annuler');
+    const match = await ctx.db.get(bet.matchId);
+    if (!match) throw new Error('Match introuvable');
+    if (match.status !== 'scheduled' || match.kickoff <= Date.now())
+      throw new Error('Ce match a déjà commencé');
+
+    // Rembourse la mise, retire l'écriture d'audit correspondante puis supprime le pari.
+    const newBalance = user.flames + bet.stake;
+    await ctx.db.patch(user._id, { flames: newBalance });
+    const txns = await ctx.db
+      .query('flameTransactions')
+      .withIndex('by_user', (q) => q.eq('userId', user._id))
+      .collect();
+    for (const t of txns) {
+      if (t.refId === betId && t.reason === 'prediction_stake') await ctx.db.delete(t._id);
+    }
+    await ctx.db.delete(betId);
+
+    return { newBalance };
+  },
+});
