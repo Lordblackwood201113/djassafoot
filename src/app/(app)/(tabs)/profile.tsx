@@ -23,6 +23,8 @@ const TX_LABEL: Record<string, string> = {
   prediction_win: 'Prono gagné',
 };
 
+const HISTORY_PREVIEW = 5;
+
 function initials(name?: string) {
   if (!name) return 'JD';
   return name
@@ -48,6 +50,7 @@ export default function Profile() {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState('');
+  const [showAllTx, setShowAllTx] = useState(false);
 
   useEffect(() => {
     if (!me?.lastDailyBonusAt) return;
@@ -108,11 +111,9 @@ export default function Profile() {
     <ScreenBackground variant="app">
       <View className="flex-1">
         <AppHeader />
-        <ScrollView
-          className="flex-1 px-[18px]"
-          contentContainerStyle={{ paddingBottom: 40, paddingTop: 4, gap: 16 }}
-          showsVerticalScrollIndicator={false}
-        >
+
+        {/* En-tête ANCRÉ : identité + solde + série restent visibles, ne défilent pas. */}
+        <View className="gap-3.5 px-[18px] pb-4 pt-1">
           {/* Identité */}
           <BrutalBox className="flex-row items-center gap-3.5 rounded-2xl border border-hairline bg-surface-3 p-4">
             <View className="h-[74px] w-[74px] items-center justify-center overflow-hidden rounded-2xl border border-hairline bg-surface-2">
@@ -154,7 +155,14 @@ export default function Profile() {
               <Text className="font-ui-medium text-[10px] text-muted">Jours</Text>
             </BrutalBox>
           </View>
+        </View>
 
+        {/* Contenu défilant : bonus, historique, compte. */}
+        <ScrollView
+          className="flex-1 px-[18px]"
+          contentContainerStyle={{ paddingBottom: 40, paddingTop: 0, gap: 16 }}
+          showsVerticalScrollIndicator={false}
+        >
           {/* Bonus quotidien */}
           <BrutalBox className="gap-3.5 rounded-2xl border border-hairline bg-surface p-4">
             <View className="flex-row items-center justify-between">
@@ -202,7 +210,7 @@ export default function Profile() {
                   Aucune opération.
                 </Text>
               ) : (
-                transactions.slice(0, 12).map((tx, i) => {
+                (showAllTx ? transactions : transactions.slice(0, HISTORY_PREVIEW)).map((tx, i) => {
                   const pos = tx.amount > 0;
                   // Les lignes de pari (mise / gain) ouvrent le pari concerné via son refId.
                   const betId =
@@ -243,6 +251,22 @@ export default function Profile() {
                   );
                 })
               )}
+              {transactions && transactions.length > HISTORY_PREVIEW ? (
+                <Pressable
+                  onPress={() => setShowAllTx((v) => !v)}
+                  className="flex-row items-center justify-center gap-1.5 border-t border-line py-3.5"
+                  accessibilityRole="button"
+                >
+                  <Text className="font-ui-semibold text-[12px] text-white">
+                    {showAllTx ? 'Voir moins' : `Voir tout (${transactions.length})`}
+                  </Text>
+                  <Ionicons
+                    name={showAllTx ? 'chevron-up' : 'chevron-down'}
+                    size={14}
+                    color="#F5F5F4"
+                  />
+                </Pressable>
+              ) : null}
             </View>
           </View>
 
