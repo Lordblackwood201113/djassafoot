@@ -9,14 +9,12 @@
  */
 
 import type * as ads from "../ads.js";
-import type * as adsNode from "../adsNode.js";
 import type * as betRules from "../betRules.js";
 import type * as bets from "../bets.js";
 import type * as crons from "../crons.js";
 import type * as flames from "../flames.js";
 import type * as football from "../football.js";
 import type * as friends from "../friends.js";
-import type * as http from "../http.js";
 import type * as leaderboard from "../leaderboard.js";
 import type * as leagues from "../leagues.js";
 import type * as matchDetails from "../matchDetails.js";
@@ -39,14 +37,12 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   ads: typeof ads;
-  adsNode: typeof adsNode;
   betRules: typeof betRules;
   bets: typeof bets;
   crons: typeof crons;
   flames: typeof flames;
   football: typeof football;
   friends: typeof friends;
-  http: typeof http;
   leaderboard: typeof leaderboard;
   leagues: typeof leagues;
   matchDetails: typeof matchDetails;

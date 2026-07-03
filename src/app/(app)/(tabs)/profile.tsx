@@ -41,6 +41,7 @@ export default function Profile() {
   const transactions = useQuery(api.flames.myTransactions);
   const adsRemaining = useQuery(api.ads.adRewardsRemaining, isAdsSupported ? {} : 'skip');
   const claimBonus = useMutation(api.flames.claimDailyBonus);
+  const claimAdReward = useMutation(api.ads.claimAdReward);
   const deleteMyAccount = useMutation(api.users.deleteMyAccount);
   const { signOut } = useAuth();
   const { user } = useUser();
@@ -95,13 +96,14 @@ export default function Profile() {
     setWatchingAd(true);
     setAdMsg('');
     try {
-      const earned = await showRewarded(me._id);
-      setAdMsg(
-        earned
-          ? 'Récompense en route… ton solde va se mettre à jour 🪙'
-          : 'Pub non disponible, réessaie.',
-      );
-      if (earned) track(EVENTS.adRewardWatched);
+      const earned = await showRewarded();
+      if (earned) {
+        const res = await claimAdReward();
+        setAdMsg(res?.credited ? '+20 🪙 ajoutés. Merci !' : 'Quota du jour atteint.');
+        if (res?.credited) track(EVENTS.adRewardWatched);
+      } else {
+        setAdMsg('Pub non disponible, réessaie.');
+      }
     } catch {
       setAdMsg('Pub non disponible, réessaie.');
     } finally {

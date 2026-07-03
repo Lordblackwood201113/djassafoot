@@ -1,6 +1,6 @@
 # Story 1.4 : Pubs récompensées (regarder une pub → +20 jetons, max 3/jour, SSV)
 
-Status: ready-for-review — implémenté + revue adversariale + correctifs (2026-07-03)
+Status: done — implémenté **client-side** (SSV abandonné), déployé + revue (2026-07-03)
 
 <!-- Créée hors scaffolding BMAD (projet sans epics/sprint-status). Auto-suffisante pour dev-story. -->
 <!-- Specs AdMob (SSV) et config lib vérifiées sur les docs officiels (voir References). -->
@@ -161,6 +161,7 @@ claude-opus-4-8
 
 ### Completion Notes List
 
+- **🔄 RÉVISION (2026-07-03) : bascule CLIENT-SIDE, SSV retiré** (voir note en tête de story). `convex/http.ts` / `adsNode.ts` / `node-runtime.d.ts` supprimés ; crédit via mutation publique `ads.claimAdReward` (auth + plafond 3/j serveur) ; table `adRewards` simplifiée (plus de `transactionId`) ; `showRewarded()` sans arg (plus de `serverSideVerificationOptions`) ; `onWatchAd` appelle `claimAdReward` sur `EARNED_REWARD`. Les puces ci-dessous décrivent la version SSV initiale (historique).
 - **SSV robuste** : `convex/http.ts` (route `GET /admob-ssv`) → `convex/adsNode.ts` (`"use node"`, vérif ECDSA/SHA-256, sig DER base64url, clés PEM Google) → `convex/ads.ts creditReward` (interne). Le client ne crédite jamais.
 - **Client** : `src/lib/ads.native.ts` (real) / `src/lib/ads.ts` (web no-op) — split Metro, bundle web ne référence jamais la lib. `showRewarded(userId)` passe `serverSideVerificationOptions.userId = me._id`. UI carte Profil « Gagner des jetons » (+20, N/3), init au boot (`_layout`).
 - **Anti-inflation** : plafond **3/jour calendaire (UTC)** + montant **20 autoritatif serveur** (indépendant de la config AdMob) + **idempotence** par `transactionId` (table `adRewards`).

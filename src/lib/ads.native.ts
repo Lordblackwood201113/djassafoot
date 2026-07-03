@@ -1,13 +1,12 @@
 // Implémentation PUB native via react-native-google-mobile-ads.
-// Le CRÉDIT des jetons se fait côté serveur via SSV (Server-Side Verification) — ici on ne fait
-// qu'afficher la pub en passant `userId` (= id Convex) à AdMob, qui appellera notre endpoint.
+// Le CRÉDIT des jetons est fait CÔTÉ SERVEUR par la mutation `ads.claimAdReward` (appelée depuis le
+// composant quand cette fonction résout `true`), plafonnée 3/jour. Pas de SSV (jetons virtuels).
 import { Platform } from 'react-native';
 import mobileAds, {
   AdEventType,
   AdsConsent,
   RewardedAd,
   RewardedAdEventType,
-  TestIds,
 } from 'react-native-google-mobile-ads';
 
 // ⚠️ Restreint à ANDROID pour l'instant : aucun `iosAppId` AdMob n'est configuré (l'App ID fourni
@@ -15,8 +14,9 @@ import mobileAds, {
 // → sur iOS on se comporte comme le web (no-op) tant que l'app AdMob iOS n'existe pas.
 export const isAdsSupported = Platform.OS === 'android';
 
-// En DEV on utilise TOUJOURS l'unité de TEST (cliquer ses vraies pubs = bannissement AdMob).
-const REWARDED_UNIT_ID = __DEV__ ? TestIds.REWARDED : 'ca-app-pub-8445698013703110/6639356691';
+// Notre VRAIE unité récompensée. En DEV, l'appareil est enregistré comme "test device" (voir
+// initAds) → Google sert des pubs de TEST sur cette unité, sans risque de bannissement.
+const REWARDED_UNIT_ID = 'ca-app-pub-8445698013703110/6639356691';
 const LOAD_TIMEOUT_MS = 30000; // filet anti-blocage si la pub ne charge jamais
 
 let initialized = false;
@@ -34,6 +34,11 @@ async function requestConsent(): Promise<void> {
 export async function initAds(): Promise<void> {
   if (!isAdsSupported || initialized) return;
   try {
+    if (__DEV__) {
+      // 'EMULATOR' couvre TOUS les émulateurs Android. Pour un TÉLÉPHONE physique, ajoute son
+      // identifiant de test (visible dans logcat : « RequestConfiguration.Builder.setTestDeviceIds »).
+      await mobileAds().setRequestConfiguration({ testDeviceIdentifiers: ['EMULATOR'] });
+    }
     await requestConsent();
     await mobileAds().initialize();
     initialized = true;
@@ -42,18 +47,16 @@ export async function initAds(): Promise<void> {
   }
 }
 
-// Charge + montre une pub récompensée. Résout `true` si récompense gagnée (UX), `false` sinon.
+// Charge + montre une pub récompensée. Résout `true` si récompense gagnée, `false` sinon.
 // Garanti de résoudre (timeout de secours) → l'UI ne reste jamais bloquée sur « Chargement… ».
-export async function showRewarded(userId: string): Promise<boolean> {
+export async function showRewarded(): Promise<boolean> {
   if (!isAdsSupported) return false;
   return new Promise<boolean>((resolve) => {
     let earned = false;
     let done = false;
     let timer: ReturnType<typeof setTimeout> | null = null;
 
-    const ad = RewardedAd.createForAdRequest(REWARDED_UNIT_ID, {
-      serverSideVerificationOptions: { userId },
-    });
+    const ad = RewardedAd.createForAdRequest(REWARDED_UNIT_ID);
 
     const unsubLoaded = ad.addAdEventListener(RewardedAdEventType.LOADED, () => {
       ad.show().catch(() => finish(false));

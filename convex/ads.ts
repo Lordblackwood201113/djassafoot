@@ -1,9 +1,7 @@
-import { v } from 'convex/values';
-
 import type { Id } from './_generated/dataModel';
-import { internalMutation, query, type QueryCtx } from './_generated/server';
+import { mutation, query, type QueryCtx } from './_generated/server';
 
-const REWARD_AMOUNT = 20; // jetons par pub (autoritatif serveur, indépendant de la config AdMob)
+const REWARD_AMOUNT = 20; // jetons par pub (autoritatif serveur)
 const DAILY_CAP = 3; // pubs récompensées max par jour calendaire
 
 async function currentUser(ctx: QueryCtx) {
@@ -21,68 +19,46 @@ function startOfDayUTC(now: number): number {
   return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
 }
 
+async function adRewardsToday(ctx: QueryCtx, userId: Id<'users'>): Promise<number> {
+  const since = startOfDayUTC(Date.now());
+  const rows = await ctx.db
+    .query('adRewards')
+    .withIndex('by_user', (q) => q.eq('userId', userId))
+    .collect();
+  return rows.filter((r) => r.createdAt >= since).length;
+}
+
 // Pubs encore disponibles aujourd'hui (pour l'UI : grise le bouton à 0).
 export const adRewardsRemaining = query({
   args: {},
   handler: async (ctx) => {
     const user = await currentUser(ctx);
     if (!user) return 0;
-    const since = startOfDayUTC(Date.now());
-    const rows = await ctx.db
-      .query('adRewards')
-      .withIndex('by_user', (q) => q.eq('userId', user._id))
-      .collect();
-    const today = rows.filter((r) => r.createdAt >= since).length;
-    return Math.max(0, DAILY_CAP - today);
+    return Math.max(0, DAILY_CAP - (await adRewardsToday(ctx, user._id)));
   },
 });
 
-// Crédite la récompense APRÈS vérification SSV (appelée UNIQUEMENT par l'action Node
-// `adsNode.verifyAndCredit`, jamais par le client). Idempotent (transactionId) + plafonné.
-export const creditReward = internalMutation({
-  args: { userId: v.string(), transactionId: v.string() },
-  handler: async (ctx, { userId, transactionId }) => {
-    // Idempotence : reward déjà traité (rejeu du callback) → ne rien faire.
-    const dup = await ctx.db
-      .query('adRewards')
-      .withIndex('by_transaction', (q) => q.eq('transactionId', transactionId))
-      .unique();
-    if (dup) return { credited: false, reason: 'duplicate' };
+// Crédite +20 jetons après qu'une pub récompensée a été REGARDÉE (callback client `EARNED_REWARD`).
+// Plafond 3/jour calendaire appliqué CÔTÉ SERVEUR (autoritatif) → un client ne peut pas dépasser.
+// Pas de SSV : jetons 100 % virtuels, le plafond borne tout abus (cf. story 1-4).
+export const claimAdReward = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const user = await currentUser(ctx);
+    if (!user) throw new Error('Non authentifié');
 
-    // `userId` provient du SSV SIGNÉ ; format d'id potentiellement invalide → get protégé.
-    let user;
-    try {
-      user = await ctx.db.get(userId as Id<'users'>);
-    } catch {
-      return { credited: false, reason: 'bad_user' };
-    }
-    if (!user) return { credited: false, reason: 'no_user' };
+    const today = await adRewardsToday(ctx, user._id);
+    if (today >= DAILY_CAP) return { credited: false, reason: 'quota' as const };
 
-    // Quota du jour calendaire.
     const now = Date.now();
-    const since = startOfDayUTC(now);
-    const rows = await ctx.db
-      .query('adRewards')
-      .withIndex('by_user', (q) => q.eq('userId', user._id))
-      .collect();
-    if (rows.filter((r) => r.createdAt >= since).length >= DAILY_CAP) {
-      return { credited: false, reason: 'quota' };
-    }
-
     await ctx.db.patch(user._id, { flames: user.flames + REWARD_AMOUNT });
     await ctx.db.insert('flameTransactions', {
       userId: user._id,
       amount: REWARD_AMOUNT,
       reason: 'ad_reward',
-      refId: transactionId,
       createdAt: now,
     });
-    await ctx.db.insert('adRewards', {
-      userId: user._id,
-      transactionId,
-      amount: REWARD_AMOUNT,
-      createdAt: now,
-    });
-    return { credited: true };
+    await ctx.db.insert('adRewards', { userId: user._id, amount: REWARD_AMOUNT, createdAt: now });
+    return { credited: true as const, remaining: DAILY_CAP - (today + 1) };
   },
 });

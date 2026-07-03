@@ -282,13 +282,10 @@ export default defineSchema({
     .index('by_blocked', ['blockedId'])
     .index('by_blocker_blocked', ['blockerId', 'blockedId']),
 
-  // Récompenses pub (AdMob) créditées via SSV — idempotence (transactionId) + quota/jour.
+  // Récompenses pub (AdMob) — 1 ligne par pub créditée, sert au plafond journalier.
   adRewards: defineTable({
     userId: v.id('users'),
-    transactionId: v.string(),
     amount: v.number(),
     createdAt: v.number(),
-  })
-    .index('by_transaction', ['transactionId'])
-    .index('by_user', ['userId']),
+  }).index('by_user', ['userId']),
 });
