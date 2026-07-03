@@ -33,13 +33,13 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/logo/djassafoot.png",
-          "imageWidth": 240,
+          "image": "./assets/logo/djassafoot_splash.png",
+          "imageWidth": 288,
           "resizeMode": "contain",
           "backgroundColor": "#0A0A0B",
           "android": {
-            "image": "./assets/logo/djassafoot.png",
-            "imageWidth": 240,
+            "image": "./assets/logo/djassafoot_splash.png",
+            "imageWidth": 288,
             "resizeMode": "contain",
             "backgroundColor": "#0A0A0B"
           }
