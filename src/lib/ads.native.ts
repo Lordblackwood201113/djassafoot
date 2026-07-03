@@ -7,6 +7,7 @@ import mobileAds, {
   AdsConsent,
   RewardedAd,
   RewardedAdEventType,
+  TestIds,
 } from 'react-native-google-mobile-ads';
 
 // ⚠️ Restreint à ANDROID pour l'instant : aucun `iosAppId` AdMob n'est configuré (l'App ID fourni
@@ -14,9 +15,10 @@ import mobileAds, {
 // → sur iOS on se comporte comme le web (no-op) tant que l'app AdMob iOS n'existe pas.
 export const isAdsSupported = Platform.OS === 'android';
 
-// Notre VRAIE unité récompensée. En DEV, l'appareil est enregistré comme "test device" (voir
-// initAds) → Google sert des pubs de TEST sur cette unité, sans risque de bannissement.
-const REWARDED_UNIT_ID = 'ca-app-pub-8445698013703110/6639356691';
+// En DEV : unité de TEST Google → se REMPLIT TOUJOURS (n'importe quel appareil/émulateur), joue une
+// pub de test, déclenche `EARNED_REWARD`. Comme on crédite CÔTÉ CLIENT (plus de SSV), l'unité n'a
+// aucune importance pour le crédit. En prod : notre vraie unité récompensée.
+const REWARDED_UNIT_ID = __DEV__ ? TestIds.REWARDED : 'ca-app-pub-8445698013703110/6639356691';
 const LOAD_TIMEOUT_MS = 30000; // filet anti-blocage si la pub ne charge jamais
 
 let initialized = false;
@@ -34,11 +36,6 @@ async function requestConsent(): Promise<void> {
 export async function initAds(): Promise<void> {
   if (!isAdsSupported || initialized) return;
   try {
-    if (__DEV__) {
-      // 'EMULATOR' couvre TOUS les émulateurs Android. Pour un TÉLÉPHONE physique, ajoute son
-      // identifiant de test (visible dans logcat : « RequestConfiguration.Builder.setTestDeviceIds »).
-      await mobileAds().setRequestConfiguration({ testDeviceIdentifiers: ['EMULATOR'] });
-    }
     await requestConsent();
     await mobileAds().initialize();
     initialized = true;

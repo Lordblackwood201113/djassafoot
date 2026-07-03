@@ -8,6 +8,7 @@ import { BrutalButton } from '@/components/brutal/BrutalButton';
 import { ScreenBackground } from '@/components/ScreenBackground';
 import { EVENTS, track } from '@/lib/analytics';
 import { usePrefsStore } from '@/store/prefsStore';
+import { useSsoStore } from '@/store/ssoStore';
 
 const logo = require('../../assets/logo/djassafoot.png');
 
@@ -46,6 +47,7 @@ export default function Index() {
   const { isLoaded, isSignedIn } = useAuth();
   const onboardingDone = usePrefsStore((s) => s.onboardingDone);
   const hasHydrated = usePrefsStore((s) => s.hasHydrated);
+  const ssoInProgress = useSsoStore((s) => s.inProgress);
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
@@ -58,8 +60,9 @@ export default function Index() {
   }, [isLoaded, isSignedIn]);
 
   // On attend Clerk ET la réhydratation des prefs avant de router (sinon flash d'onboarding pour un
-  // utilisateur qui l'a déjà vu, la valeur persistée arrivant de façon asynchrone).
-  if (!isLoaded || !hasHydrated) {
+  // utilisateur qui l'a déjà vu). `ssoInProgress` : le deep link OAuth ramène ici pendant que la
+  // session se finalise → loader plutôt qu'un flash de l'écran « Commencer » déconnecté.
+  if (!isLoaded || !hasHydrated || (ssoInProgress && !isSignedIn)) {
     return (
       <ScreenBackground variant="hero">
         <View className="flex-1 items-center justify-center">
