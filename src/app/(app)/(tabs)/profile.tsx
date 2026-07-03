@@ -223,7 +223,7 @@ export default function Profile() {
               <View className="flex-row items-center justify-between">
                 <Text className="font-ui-semibold text-[12px] text-white">Gagner des jetons</Text>
                 <Text className="font-ui-medium text-[11px] text-muted">
-                  {adsRemaining === undefined ? '' : `${adsRemaining}/3 aujourd'hui`}
+                  {typeof adsRemaining === 'number' ? `${adsRemaining}/3 aujourd'hui` : ''}
                 </Text>
               </View>
               <Text className="font-ui-medium text-[12px] leading-[17px] text-muted">
@@ -239,7 +239,7 @@ export default function Profile() {
                 <BrutalButton
                   label={watchingAd ? 'Chargement…' : 'Regarder une pub (+20 🪙)'}
                   variant="primary"
-                  disabled={watchingAd || !me || adsRemaining === undefined}
+                  disabled={watchingAd || !me || typeof adsRemaining !== 'number'}
                   onPress={onWatchAd}
                 />
               )}

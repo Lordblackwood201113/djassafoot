@@ -2,6 +2,7 @@ import { v } from 'convex/values';
 
 import { api, internal } from './_generated/api';
 import { internalAction, internalMutation, internalQuery } from './_generated/server';
+import { resettleMatchBets } from './settlement';
 
 // FIFA World Cup 2026 sur TheSportsDB (v2, header X-API-KEY).
 const WC_LEAGUE = '4429';
@@ -67,10 +68,15 @@ export const upsertMatches = internalMutation({
   handler: async (ctx, { matches }) => {
     let n = 0;
     const settledMatchIds: any[] = [];
+    const rescoredMatchIds: any[] = [];
     for (const m of matches as any[]) {
       if (!m.apiId) continue;
+      // On filtre les undefined ET un kickoff=0 (date API absente/illisible) → un live update
+      // n'écrase jamais un vrai coup d'envoi par 1970 (L1).
       const clean: any = Object.fromEntries(
-        Object.entries({ ...m, updatedAt: Date.now() }).filter(([, val]) => val !== undefined),
+        Object.entries({ ...m, updatedAt: Date.now() }).filter(
+          ([k, val]) => val !== undefined && !(k === 'kickoff' && val === 0),
+        ),
       );
       const existing = await ctx.db
         .query('matches')
@@ -78,10 +84,22 @@ export const upsertMatches = internalMutation({
         .unique();
       if (existing) {
         const wasFinished = existing.status === 'finished';
+        // L2 — anti-régression : un match TERMINÉ ne redevient jamais scheduled/live (un événement
+        // /livescore à strStatus vide mapperait sinon vers 'scheduled').
+        if (wasFinished && clean.status && clean.status !== 'finished') {
+          delete clean.status;
+        }
+        // L3 — score corrigé APRÈS coup sur un match déjà terminé (VAR tardif, score live erroné).
+        const scoreChanged =
+          wasFinished &&
+          ((clean.homeScore !== undefined && clean.homeScore !== existing.homeScore) ||
+            (clean.awayScore !== undefined && clean.awayScore !== existing.awayScore));
         const isFinished = clean.status === 'finished';
         await ctx.db.patch(existing._id, clean);
         if (!wasFinished && isFinished) {
           settledMatchIds.push(existing._id);
+        } else if (scoreChanged) {
+          rescoredMatchIds.push(existing._id);
         }
         n++;
       } else if (m.homeName && m.awayName && m.kickoff) {
@@ -92,7 +110,7 @@ export const upsertMatches = internalMutation({
         n++;
       }
     }
-    return { count: n, settledMatchIds };
+    return { count: n, settledMatchIds, rescoredMatchIds };
   },
 });
 
@@ -163,9 +181,15 @@ export const syncFixtures = internalAction({
     const data: any = await res.json();
     const events: any[] = data.schedule ?? data.events ?? [];
     const matches = events.map(normalize).filter((m) => m.apiId && m.kickoff);
-    const { count, settledMatchIds } = await ctx.runMutation(internal.football.upsertMatches, { matches });
+    const { count, settledMatchIds, rescoredMatchIds } = await ctx.runMutation(
+      internal.football.upsertMatches,
+      { matches },
+    );
     for (const matchId of settledMatchIds) {
       await ctx.runMutation(internal.settlement.settleMatch, { matchId });
+    }
+    for (const matchId of rescoredMatchIds) {
+      await ctx.runMutation(internal.settlement.resettleMatch, { matchId });
     }
     return count;
   },
@@ -189,6 +213,12 @@ export const setKnockoutResult = internalMutation({
     if (homePenalty != null) patch.homePenalty = homePenalty;
     if (awayPenalty != null) patch.awayPenalty = awayPenalty;
     await ctx.db.patch(matchId, patch);
+    // H1 : le vainqueur (tirs au but) est désormais connu → re-règlement SÛR des paris V1/V2 sur
+    // l'équipe qualifiée (uniquement perdant → gagnant ; jamais de reprise de jetons).
+    if (winner) {
+      const match = await ctx.db.get(matchId);
+      if (match) await resettleMatchBets(ctx, match, true);
+    }
   },
 });
 
@@ -290,9 +320,15 @@ export const ingestLive = internalAction({
     const data: any = await res.json();
     const events: any[] = data.livescore ?? data.events ?? [];
     const matches = events.map(normalize).filter((m) => m.apiId);
-    const { count, settledMatchIds } = await ctx.runMutation(internal.football.upsertMatches, { matches });
+    const { count, settledMatchIds, rescoredMatchIds } = await ctx.runMutation(
+      internal.football.upsertMatches,
+      { matches },
+    );
     for (const matchId of settledMatchIds) {
       await ctx.runMutation(internal.settlement.settleMatch, { matchId });
+    }
+    for (const matchId of rescoredMatchIds) {
+      await ctx.runMutation(internal.settlement.resettleMatch, { matchId });
     }
     return count;
   },

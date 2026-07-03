@@ -56,6 +56,12 @@ export async function showRewarded(): Promise<boolean> {
     const ad = RewardedAd.createForAdRequest(REWARDED_UNIT_ID);
 
     const unsubLoaded = ad.addAdEventListener(RewardedAdEventType.LOADED, () => {
+      // Le timeout ne borne QUE le CHARGEMENT : une fois la pub prête, on l'annule pour ne pas
+      // résoudre `false` en plein visionnage (réseau lent + pub longue → récompense perdue). M3.
+      if (timer) {
+        clearTimeout(timer);
+        timer = null;
+      }
       ad.show().catch(() => finish(false));
     });
     const unsubEarned = ad.addAdEventListener(RewardedAdEventType.EARNED_REWARD, () => {

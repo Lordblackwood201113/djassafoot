@@ -97,9 +97,12 @@ export default function Onboarding() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const acceptConsent = usePrefsStore((s) => s.acceptConsent);
-  const completeOnboarding = usePrefsStore((s) => s.completeOnboarding);
 
-  const [step, setStep] = useState(0);
+  // Si les slides ont déjà été vues (onboardingDone) mais le consentement pas validé — cas d'un
+  // retour forcé par la garde du layout (auth) — on ouvre directement l'écran de consentement.
+  const [step, setStep] = useState(() =>
+    usePrefsStore.getState().onboardingDone ? CONSENT_STEP : 0,
+  );
   const [age, setAge] = useState(false);
   const [terms, setTerms] = useState(false);
 
@@ -115,9 +118,11 @@ export default function Onboarding() {
     acceptConsent();
     router.replace('/sign-up');
   };
-  // « Déjà un compte » : on marque l'onboarding vu (pas de consentement requis pour se connecter).
+  // « Déjà un compte » : le consentement (âge 17+ / CGU) reste requis avant d'accéder à un compte
+  // (la connexion mène à l'inscription et à l'OAuth) → on l'enregistre puis on file vers /sign-in.
   const goSignIn = () => {
-    completeOnboarding();
+    if (!canContinue) return;
+    acceptConsent();
     router.replace('/sign-in');
   };
 
@@ -203,8 +208,13 @@ export default function Onboarding() {
           />
           <View className="mt-3.5 flex-row items-center justify-center gap-1.5">
             <Text className="font-ui-medium text-[13px] text-muted-2">Déjà un compte ?</Text>
-            <Pressable onPress={goSignIn} hitSlop={8}>
-              <Text className="font-ui-bold text-[13px] text-paper">Se connecter</Text>
+            <Pressable onPress={goSignIn} hitSlop={8} disabled={!canContinue}>
+              <Text
+                className="font-ui-bold text-[13px] text-paper"
+                style={{ opacity: canContinue ? 1 : 0.4 }}
+              >
+                Se connecter
+              </Text>
             </Pressable>
           </View>
         </ScrollView>

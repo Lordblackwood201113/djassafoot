@@ -33,7 +33,9 @@ export const adRewardsRemaining = query({
   args: {},
   handler: async (ctx) => {
     const user = await currentUser(ctx);
-    if (!user) return 0;
+    // `null` (pas 0) si le record user n'existe pas encore → l'UI ne doit PAS afficher
+    // « Reviens demain » (elle traite null comme « en cours de chargement »).
+    if (!user) return null;
     return Math.max(0, DAILY_CAP - (await adRewardsToday(ctx, user._id)));
   },
 });

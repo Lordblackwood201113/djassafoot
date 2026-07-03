@@ -5,7 +5,7 @@ import { validateLegs } from '@convex/betRules';
 import { exactOdds } from '@convex/oddsShared';
 import { useMutation, useQuery } from 'convex/react';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -36,6 +36,7 @@ export default function BetSlip() {
 
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const submitting = useRef(false); // verrou synchrone anti-double-pose (M1)
 
   // Cotes fraîches du match : le serveur re-price au moment de valider, donc on affiche les cotes
   // actuelles (indispensable en édition, où les cotes stockées peuvent avoir bougé). Fallback sur
@@ -74,7 +75,10 @@ export default function BetSlip() {
     legsArr.length > 0 && stake > 0 && stake <= spendable && legality.ok && !busy;
 
   const submit = async () => {
-    if (!matchId || !canValidate) return;
+    // Verrou SYNCHRONE : le `disabled` du bouton ne s'applique qu'au re-render suivant ; un
+    // double-tap rapide (surtout sur web) pourrait poser 2 paris et débiter 2 fois. M1.
+    if (!matchId || !canValidate || submitting.current) return;
+    submitting.current = true;
     setBusy(true);
     setError(null);
     try {
@@ -95,6 +99,7 @@ export default function BetSlip() {
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Erreur lors de la pose du pari');
       setBusy(false);
+      submitting.current = false;
     }
   };
 

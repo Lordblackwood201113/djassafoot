@@ -319,7 +319,11 @@ export default function LeagueDetail() {
                     </Text>
                     {league.isOwner && !m.isMe ? (
                       <Pressable
-                        onPress={() => kick({ leagueId: league._id, userId: m.userId })}
+                        onPress={() =>
+                          kick({ leagueId: league._id, userId: m.userId }).catch(() =>
+                            setShareMsg('Impossible d’exclure ce membre.'),
+                          )
+                        }
                         className="h-7 w-7 items-center justify-center rounded-[13px] border border-hairline bg-surface-2"
                       >
                         <Ionicons name="close" size={14} color="#A1A1AA" />

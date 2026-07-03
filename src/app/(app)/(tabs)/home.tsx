@@ -8,7 +8,6 @@ import { BrutalBox } from '@/components/brutal/BrutalBox';
 import { HeroMatch } from '@/components/match/HeroMatch';
 import { MatchCard } from '@/components/match/MatchCard';
 import { ScreenBackground } from '@/components/ScreenBackground';
-import { useStoreUser } from '@/hooks/useStoreUser';
 
 function SectionLabel({ title }: { title: string }) {
   return (
@@ -17,7 +16,6 @@ function SectionLabel({ title }: { title: string }) {
 }
 
 export default function Home() {
-  useStoreUser();
   const live = useQuery(api.matches.live);
   const upcoming = useQuery(api.matches.upcoming, { limit: 8 });
 

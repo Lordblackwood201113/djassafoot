@@ -313,7 +313,9 @@ export const detail = query({
       logoUrl: league.logoId ? await ctx.storage.getUrl(league.logoId) : null,
       code: league.code,
       isOwner: league.ownerId === user._id,
-      memberCount: memberships.length,
+      // Cohérence UI : le compteur = les membres RÉELLEMENT listés (un membre bloqué est masqué
+      // de la liste donc du compte, sinon « 4 membres » s'affiche au-dessus de 3 lignes).
+      memberCount: rows.length,
       members: rows,
     };
   },

@@ -163,6 +163,8 @@ export async function purgeUser(ctx: MutationCtx, uid: Id<'users'>): Promise<voi
   await del(
     await ctx.db.query('reports').withIndex('by_target_user', (q) => q.eq('targetUserId', uid)).collect(),
   );
+  // Pubs récompensées (sinon lignes orphelines → viole l'invariant « 0-orphelin », M2).
+  await del(await ctx.db.query('adRewards').withIndex('by_user', (q) => q.eq('userId', uid)).collect());
 
   await ctx.db.delete(uid);
 }

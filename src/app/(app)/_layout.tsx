@@ -3,11 +3,16 @@ import { Redirect, Stack, usePathname } from 'expo-router';
 import { useEffect } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 
+import { useStoreUser } from '@/hooks/useStoreUser';
 import { setPendingLeague } from '@/store/pendingLeagueStore';
 
 export default function AppLayout() {
   const { isLoaded, isSignedIn } = useAuth();
   const pathname = usePathname();
+  // Crée l'utilisateur Convex (+ bonus 500 🪙) dès l'entrée dans l'app, quel que soit l'écran
+  // d'atterrissage (ex. arrivée directe sur un lien d'invitation de ligue). H2 : avant, ce n'était
+  // fait que sur l'onglet Accueil → un nouvel arrivant via invitation n'avait ni compte ni bonus.
+  useStoreUser();
 
   // Lien d'invitation à une ligue ouvert sans être connecté → on retient le code avant
   // la redirection vers l'accueil, pour y revenir automatiquement après connexion.
