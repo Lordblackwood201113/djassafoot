@@ -15,10 +15,14 @@ import mobileAds, {
 // → sur iOS on se comporte comme le web (no-op) tant que l'app AdMob iOS n'existe pas.
 export const isAdsSupported = Platform.OS === 'android';
 
-// En DEV : unité de TEST Google → se REMPLIT TOUJOURS (n'importe quel appareil/émulateur), joue une
-// pub de test, déclenche `EARNED_REWARD`. Comme on crédite CÔTÉ CLIENT (plus de SSV), l'unité n'a
-// aucune importance pour le crédit. En prod : notre vraie unité récompensée.
-const REWARDED_UNIT_ID = __DEV__ ? TestIds.REWARDED : 'ca-app-pub-8445698013703110/6639356691';
+// Pubs de TEST forcées en DEV, ou dans un build de test partagé (EXPO_PUBLIC_ADS_TEST=1) : l'unité
+// de test Google se REMPLIT TOUJOURS sur n'importe quel appareil et déclenche `EARNED_REWARD`. Comme
+// on crédite CÔTÉ CLIENT (plus de SSV), l'unité n'a aucune importance pour le crédit. En prod (flag
+// absent) : notre vraie unité récompensée.
+const USE_TEST_ADS = __DEV__ || process.env.EXPO_PUBLIC_ADS_TEST === '1';
+const REWARDED_UNIT_ID = USE_TEST_ADS
+  ? TestIds.REWARDED
+  : 'ca-app-pub-8445698013703110/6639356691';
 const LOAD_TIMEOUT_MS = 30000; // filet anti-blocage si la pub ne charge jamais
 
 let initialized = false;
