@@ -51,6 +51,12 @@
         {
           "photosPermission": "Djassa Foot accède à tes photos pour choisir le logo de ta ligue."
         }
+      ],
+      [
+        "react-native-google-mobile-ads",
+        {
+          "androidAppId": "ca-app-pub-8445698013703110~5995369183"
+        }
       ]
     ],
     "experiments": {

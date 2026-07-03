@@ -24,6 +24,7 @@ import { Text, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { AnalyticsBridge } from '@/components/AnalyticsBridge';
+import { initAds } from '@/lib/ads';
 import { initAnalytics } from '@/lib/analytics';
 
 // Nettoie une variable d'env : les dashboards d'hébergeur (Cloudflare, etc.) enregistrent parfois
@@ -86,6 +87,8 @@ export default function RootLayout() {
     } catch {
       /* l'analytics ne doit jamais casser le démarrage */
     }
+    // Init AdMob (natif uniquement ; no-op sur web via le wrapper).
+    initAds().catch(() => {});
   }, []);
 
   // Si les polices échouent (réseau/CDN), on affiche quand même l'app (polices système).

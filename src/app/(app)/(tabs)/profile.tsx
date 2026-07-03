@@ -12,6 +12,7 @@ import { BrutalBox } from '@/components/brutal/BrutalBox';
 import { BrutalButton } from '@/components/brutal/BrutalButton';
 import { ScreenBackground } from '@/components/ScreenBackground';
 import { EVENTS, track } from '@/lib/analytics';
+import { isAdsSupported, showRewarded } from '@/lib/ads';
 import { formatDay } from '@/lib/format';
 
 const TX_LABEL: Record<string, string> = {
@@ -38,6 +39,7 @@ function initials(name?: string) {
 export default function Profile() {
   const me = useQuery(api.users.current);
   const transactions = useQuery(api.flames.myTransactions);
+  const adsRemaining = useQuery(api.ads.adRewardsRemaining, isAdsSupported ? {} : 'skip');
   const claimBonus = useMutation(api.flames.claimDailyBonus);
   const deleteMyAccount = useMutation(api.users.deleteMyAccount);
   const { signOut } = useAuth();
@@ -47,6 +49,8 @@ export default function Profile() {
   const [claiming, setClaiming] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [timeLeft, setTimeLeft] = useState('');
+  const [watchingAd, setWatchingAd] = useState(false);
+  const [adMsg, setAdMsg] = useState('');
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState('');
@@ -83,6 +87,25 @@ export default function Profile() {
       setErrorMsg(e.message || 'Une erreur est survenue');
     } finally {
       setClaiming(false);
+    }
+  };
+
+  const onWatchAd = async () => {
+    if (!me || watchingAd) return;
+    setWatchingAd(true);
+    setAdMsg('');
+    try {
+      const earned = await showRewarded(me._id);
+      setAdMsg(
+        earned
+          ? 'Récompense en route… ton solde va se mettre à jour 🪙'
+          : 'Pub non disponible, réessaie.',
+      );
+      if (earned) track(EVENTS.adRewardWatched);
+    } catch {
+      setAdMsg('Pub non disponible, réessaie.');
+    } finally {
+      setWatchingAd(false);
     }
   };
 
@@ -191,6 +214,35 @@ export default function Profile() {
               </View>
             )}
           </BrutalBox>
+
+          {/* Gagner des jetons (pub récompensée) — natif uniquement */}
+          {isAdsSupported ? (
+            <BrutalBox className="gap-3.5 rounded-2xl border border-hairline bg-surface p-4">
+              <View className="flex-row items-center justify-between">
+                <Text className="font-ui-semibold text-[12px] text-white">Gagner des jetons</Text>
+                <Text className="font-ui-medium text-[11px] text-muted">
+                  {adsRemaining === undefined ? '' : `${adsRemaining}/3 aujourd'hui`}
+                </Text>
+              </View>
+              <Text className="font-ui-medium text-[12px] leading-[17px] text-muted">
+                Regarde une courte pub et gagne +20 jetons. Jusqu&apos;à 3 fois par jour.
+              </Text>
+              {adMsg ? <Text className="font-ui-medium text-[11px] text-green">{adMsg}</Text> : null}
+              {adsRemaining === 0 ? (
+                <View className="flex-row items-center justify-center gap-2 rounded-xl border border-hairline bg-surface-3 py-3.5">
+                  <Ionicons name="checkmark-done" size={15} color="#A1A1AA" />
+                  <Text className="font-ui-semibold text-[13px] text-muted">Reviens demain</Text>
+                </View>
+              ) : (
+                <BrutalButton
+                  label={watchingAd ? 'Chargement…' : 'Regarder une pub (+20 🪙)'}
+                  variant="primary"
+                  disabled={watchingAd || !me || adsRemaining === undefined}
+                  onPress={onWatchAd}
+                />
+              )}
+            </BrutalBox>
+          ) : null}
 
           {/* Historique */}
           <View>
