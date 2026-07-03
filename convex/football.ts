@@ -1,7 +1,7 @@
 import { v } from 'convex/values';
 
 import { api, internal } from './_generated/api';
-import { internalAction, internalMutation } from './_generated/server';
+import { internalAction, internalMutation, internalQuery } from './_generated/server';
 
 // FIFA World Cup 2026 sur TheSportsDB (v2, header X-API-KEY).
 const WC_LEAGUE = '4429';
@@ -255,11 +255,36 @@ export const enrichPenalties = internalAction({
   },
 });
 
-// Scores en direct (matchs en cours).
+// Y a-t-il un match en cours (ou imminent / censé être en cours) ? Permet à `ingestLive` de poller
+// très souvent SANS appeler l'API TheSportsDB hors des fenêtres de match. `now` est passé par
+// l'action (les queries Convex ne peuvent pas lire l'heure). Fenêtre large : [coup d'envoi −4 h,
+// +15 min] couvre prolongations/t.a.b. et un match encore marqué « scheduled » pas encore basculé.
+export const liveWindowActive = internalQuery({
+  args: { now: v.number() },
+  handler: async (ctx, { now }): Promise<boolean> => {
+    const live = await ctx.db
+      .query('matches')
+      .withIndex('by_status', (q) => q.eq('status', 'live'))
+      .first();
+    if (live) return true;
+    const near = await ctx.db
+      .query('matches')
+      .withIndex('by_kickoff', (q) =>
+        q.gte('kickoff', now - 4 * 60 * 60 * 1000).lte('kickoff', now + 15 * 60 * 1000),
+      )
+      .first();
+    return !!near;
+  },
+});
+
+// Scores en direct (matchs en cours). No-op sans appel API si aucun match n'est en cours/imminent
+// → on peut appeler ce cron très fréquemment sans gaspiller le quota TheSportsDB hors matchs.
 export const ingestLive = internalAction({
   args: {},
   handler: async (ctx): Promise<number> => {
     if (!process.env.THESPORTSDB_KEY) return 0;
+    const active = await ctx.runQuery(internal.football.liveWindowActive, { now: Date.now() });
+    if (!active) return 0;
     const res = await fetch(`${BASE}/livescore/${WC_LEAGUE}`, { headers: headers() });
     if (!res.ok) throw new Error(`TheSportsDB livescore HTTP ${res.status}`);
     const data: any = await res.json();
