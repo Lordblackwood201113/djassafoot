@@ -8,6 +8,8 @@ import { resettleMatchBets, settleBetsForMatch } from './settlement';
 const WC_LEAGUE = '4429';
 const WC_SEASON = '2026';
 const BASE = 'https://www.thesportsdb.com/api/v2/json';
+// football-data.org — source LIVE (statut/score/vainqueur/t.a.b. fiables ; 1 appel = tous les matchs WC).
+const FD_BASE = 'https://api.football-data.org/v4';
 
 const headers = () => ({
   'X-API-KEY': process.env.THESPORTSDB_KEY ?? '',
@@ -28,6 +30,15 @@ function mapStatusAF(s: any): 'scheduled' | 'live' | 'finished' {
   const x = String(s ?? '').toUpperCase();
   if (['FT', 'AET', 'PEN', 'AWD', 'WO'].includes(x)) return 'finished';
   if (['1H', 'HT', '2H', 'ET', 'BT', 'P', 'LIVE', 'INT', 'SUSP'].includes(x)) return 'live';
+  return 'scheduled';
+}
+
+// Statuts football-data.org → notre modèle. PAUSED = mi-temps (= live). POSTPONED/CANCELLED/TIMED
+// /SCHEDULED → scheduled.
+function mapStatusFD(s: any): 'scheduled' | 'live' | 'finished' {
+  const x = String(s ?? '').toUpperCase();
+  if (['FINISHED', 'AWARDED'].includes(x)) return 'finished';
+  if (['IN_PLAY', 'PAUSED', 'SUSPENDED'].includes(x)) return 'live';
   return 'scheduled';
 }
 
@@ -94,13 +105,13 @@ export const upsertMatches = internalMutation({
       if (existing) {
         const wasFinished = existing.status === 'finished';
         const existingStatus = existing.status;
-        // Anti-régression : un match commencé (live) ou terminé ne redevient jamais 'scheduled' via
-        // le calendrier TheSportsDB (souvent en retard). Le LIVE est piloté par API-Football.
+        // Anti-régression : un match commencé (live) ou terminé ne redevient jamais 'scheduled'
+        // (calendrier TheSportsDB en retard, ou strStatus vide).
         if ((existingStatus === 'live' || existingStatus === 'finished') && clean.status === 'scheduled') {
           delete clean.status;
         }
-        // Un match LIVE appartient à API-Football pour le score : le calendrier ne l'écrase pas
-        // (on laisse quand même TheSportsDB le FINALISER en 'finished' — filet de secours si l'AF tombe).
+        // Le LIVE appartient à football-data.org (via applyLiveScore) : le calendrier TheSportsDB
+        // n'écrase pas le score d'un match live (il peut quand même le FINALISER — filet de secours).
         if (existingStatus === 'live' && clean.status !== 'finished') {
           delete clean.homeScore;
           delete clean.awayScore;
@@ -487,6 +498,95 @@ export const ingestLiveAF = internalAction({
       } catch {
         /* réseau / quota API-Football → on réessaiera au prochain cron */
       }
+    }
+    return updated;
+  },
+});
+
+// ===========================================================================
+// LIVE via football-data.org (source recommandée) : 1 appel = tous les matchs du Mondial, statut
+// IN_PLAY/PAUSED/FINISHED + score + vainqueur (t.a.b. inclus). Quota 10/min → très large.
+// ===========================================================================
+
+// Normalise un nom d'équipe pour le rapprochement inter-sources (accents, mots parasites, casse).
+function normTeam(s: any): string {
+  return String(s ?? '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .replace(/\b(islands?|republic|the|of|and)\b/g, '')
+    .replace(/[^a-z]/g, '');
+}
+
+// Un match football-data.org correspond-il à un des nôtres ? (équipes fuzzy + coup d'envoi ±3h)
+function fdMatchesOurs(
+  fd: any,
+  m: { homeName: string; awayName: string; kickoff: number },
+): boolean {
+  const teamEq = (a: string, b: string) =>
+    a === b || (a.length >= 4 && b.length >= 4 && (a.includes(b) || b.includes(a)));
+  if (!teamEq(normTeam(fd.homeTeam?.name), normTeam(m.homeName))) return false;
+  if (!teamEq(normTeam(fd.awayTeam?.name), normTeam(m.awayName))) return false;
+  const fdKo = Date.parse(fd.utcDate ?? '');
+  if (Number.isNaN(fdKo)) return true;
+  return Math.abs(fdKo - m.kickoff) < 3 * 60 * 60 * 1000;
+}
+
+// Scores en direct via football-data.org (1 appel pour tout le Mondial). No-op hors fenêtre de match.
+export const ingestLiveFD = internalAction({
+  args: {},
+  handler: async (ctx): Promise<number> => {
+    const key = process.env.FOOTBALL_DATA_KEY;
+    if (!key) return 0;
+    const now = Date.now();
+    const active = await ctx.runQuery(internal.football.liveWindowActive, { now });
+    if (!active) return 0;
+    const candidates = await ctx.runQuery(internal.football.getLiveCandidates, { now });
+    if (candidates.length === 0) return 0;
+
+    const day = 24 * 60 * 60 * 1000;
+    const iso = (t: number) => new Date(t).toISOString().slice(0, 10);
+    const res = await fetch(
+      `${FD_BASE}/competitions/WC/matches?dateFrom=${iso(now - day)}&dateTo=${iso(now + day)}`,
+      { headers: { 'X-Auth-Token': key } },
+    );
+    if (!res.ok) return 0;
+    const data: any = await res.json();
+    const fdMatches: any[] = data.matches ?? [];
+
+    let updated = 0;
+    for (const m of candidates) {
+      const fd = fdMatches.find((x) => fdMatchesOurs(x, m));
+      if (!fd) continue;
+      const status = mapStatusFD(fd.status);
+      const sc = fd.score ?? {};
+      const ft = sc.fullTime ?? {};
+      const homeScore = typeof ft.home === 'number' ? ft.home : undefined;
+      const awayScore = typeof ft.away === 'number' ? ft.away : undefined;
+      // `winner`/penalties UNIQUEMENT sur un match terminé à parité (décidé aux t.a.b.).
+      const finishedParity =
+        status === 'finished' && homeScore != null && awayScore != null && homeScore === awayScore;
+      const winner: 'home' | 'away' | undefined = finishedParity
+        ? sc.winner === 'HOME_TEAM'
+          ? 'home'
+          : sc.winner === 'AWAY_TEAM'
+            ? 'away'
+            : undefined
+        : undefined;
+      const pen = finishedParity ? sc.penalties : undefined;
+      const homePenalty = typeof pen?.home === 'number' ? pen.home : undefined;
+      const awayPenalty = typeof pen?.away === 'number' ? pen.away : undefined;
+
+      await ctx.runMutation(internal.football.applyLiveScore, {
+        matchId: m._id,
+        status,
+        homeScore,
+        awayScore,
+        winner,
+        homePenalty,
+        awayPenalty,
+      });
+      updated++;
     }
     return updated;
   },

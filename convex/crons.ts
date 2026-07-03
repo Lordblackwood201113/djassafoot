@@ -4,11 +4,11 @@ import { internal } from './_generated/api';
 
 const crons = cronJobs();
 
-// Scores en direct via API-Football (source fiable), toutes les 1 min. GARDÉ par liveWindowActive
-// → n'appelle l'API que pendant les fenêtres de match. ⚠️ 1 requête API-Football / match en cours /
-// minute → sur le plan GRATUIT (100/j) ça suffit pour ~1 match ; plan payant à prévoir pour couvrir
-// tout le tournoi. (`ingestLive` via TheSportsDB reste dispo en secours manuel : `convex run`.)
-crons.interval('live scores', { minutes: 1 }, internal.football.ingestLiveAF);
+// Scores en direct via football-data.org toutes les 1 min. GARDÉ par liveWindowActive → n'appelle
+// l'API que pendant les fenêtres de match. 1 seul appel = TOUS les matchs du Mondial ; quota 10/min
+// (~14 000/j) → large. Statut IN_PLAY/PAUSED/FINISHED + score + vainqueur (t.a.b.) fiables.
+// (`ingestLive` TheSportsDB et `ingestLiveAF` API-Football restent en secours manuel : `convex run`.)
+crons.interval('live scores', { minutes: 1 }, internal.football.ingestLiveFD);
 
 // Calendrier complet de la CdM 2026 (scores/statuts finaux de TOUS les matchs) — 1 seul appel API.
 // Toutes les 10 min : finalise rapidement les matchs qui viennent de se terminer.
