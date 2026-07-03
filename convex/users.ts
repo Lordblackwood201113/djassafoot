@@ -130,3 +130,66 @@ export const publicProfile = query({
     };
   },
 });
+
+// Supprime DÉFINITIVEMENT le compte : toutes les données Convex de l'utilisateur courant
+// (paris, transactions, notifications, amitiés dans les 2 sens, ligues possédées + leurs membres +
+// leur logo dans le storage, adhésions), puis l'enregistrement `users`. La suppression du compte
+// Clerk (auth) est déclenchée côté client juste après. Exigé par Apple/Google (suppression in-app).
+export const deleteMyAccount = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const user = await currentUser(ctx);
+    if (!user) throw new Error('Non authentifié');
+    const uid = user._id;
+    const purge = async (docs: { _id: any }[]) => {
+      for (const d of docs) await ctx.db.delete(d._id);
+    };
+
+    // Ligues possédées : si d'autres joueurs y sont encore, on TRANSFÈRE la propriété au plus ancien
+    // membre restant (cohérent avec `leagues.leave`) pour ne pas détruire la ligue des autres ;
+    // sinon (j'en suis le seul membre) on supprime la ligue + son logo.
+    const ownedLeagues = await ctx.db
+      .query('leagues')
+      .withIndex('by_owner', (q) => q.eq('ownerId', uid))
+      .collect();
+    for (const lg of ownedLeagues) {
+      const members = await ctx.db
+        .query('leagueMembers')
+        .withIndex('by_league', (q) => q.eq('leagueId', lg._id))
+        .collect();
+      const others = members.filter((m) => m.userId !== uid);
+      if (others.length === 0) {
+        if (lg.logoId) {
+          try {
+            await ctx.storage.delete(lg.logoId);
+          } catch {
+            /* déjà supprimé */
+          }
+        }
+        await ctx.db.delete(lg._id);
+      } else {
+        const next = others.sort((a, b) => a.joinedAt - b.joinedAt)[0];
+        await ctx.db.patch(lg._id, { ownerId: next.userId });
+      }
+    }
+
+    // Toutes mes adhésions (ligues transférées, ligues supprimées, ou ligues d'autres joueurs).
+    await purge(
+      await ctx.db.query('leagueMembers').withIndex('by_user', (q) => q.eq('userId', uid)).collect(),
+    );
+    await purge(await ctx.db.query('bets').withIndex('by_user', (q) => q.eq('userId', uid)).collect());
+    await purge(
+      await ctx.db.query('flameTransactions').withIndex('by_user', (q) => q.eq('userId', uid)).collect(),
+    );
+    await purge(
+      await ctx.db.query('notifications').withIndex('by_user', (q) => q.eq('userId', uid)).collect(),
+    );
+    await purge(await ctx.db.query('friends').withIndex('by_user', (q) => q.eq('userId', uid)).collect());
+    await purge(
+      await ctx.db.query('friends').withIndex('by_friend', (q) => q.eq('friendId', uid)).collect(),
+    );
+
+    await ctx.db.delete(uid);
+    return { ok: true };
+  },
+});

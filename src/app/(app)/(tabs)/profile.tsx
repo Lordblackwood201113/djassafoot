@@ -1,4 +1,4 @@
-import { useAuth } from '@clerk/expo';
+import { useAuth, useUser } from '@clerk/expo';
 import { Ionicons } from '@expo/vector-icons';
 import { api } from '@convex/_generated/api';
 import { useMutation, useQuery } from 'convex/react';
@@ -37,12 +37,17 @@ export default function Profile() {
   const me = useQuery(api.users.current);
   const transactions = useQuery(api.flames.myTransactions);
   const claimBonus = useMutation(api.flames.claimDailyBonus);
+  const deleteMyAccount = useMutation(api.users.deleteMyAccount);
   const { signOut } = useAuth();
+  const { user } = useUser();
   const router = useRouter();
 
   const [claiming, setClaiming] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [timeLeft, setTimeLeft] = useState('');
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
 
   useEffect(() => {
     if (!me?.lastDailyBonusAt) return;
@@ -75,6 +80,27 @@ export default function Profile() {
       setErrorMsg(e.message || 'Une erreur est survenue');
     } finally {
       setClaiming(false);
+    }
+  };
+
+  // Suppression définitive : on efface d'abord toutes les données Convex, puis le compte Clerk
+  // (auth), puis on déconnecte → le layout renvoie vers l'accueil. Irréversible.
+  const handleDelete = async () => {
+    setDeleting(true);
+    setDeleteError('');
+    try {
+      await deleteMyAccount();
+      try {
+        await user?.delete();
+      } catch {
+        // La suppression Clerk peut échouer si l'auto-suppression n'est pas activée côté Clerk ;
+        // les données sont déjà effacées → on déconnecte quand même.
+      }
+      await signOut();
+      router.replace('/');
+    } catch (e: any) {
+      setDeleteError(e?.message || 'La suppression a échoué. Réessaie.');
+      setDeleting(false);
     }
   };
 
@@ -220,9 +246,48 @@ export default function Profile() {
             </View>
           </View>
 
-          {/* Déconnexion */}
-          <View className="mt-2">
+          {/* Compte : déconnexion + suppression définitive */}
+          <View className="mt-2 gap-3">
             <BrutalButton label="Se déconnecter" variant="ghost" onPress={() => signOut()} />
+
+            {confirmDelete ? (
+              <View className="gap-3 rounded-2xl border border-red/40 bg-surface p-4">
+                <Text className="font-ui-semibold text-[13px] text-white">
+                  Supprimer définitivement ton compte ?
+                </Text>
+                <Text className="font-ui-medium text-[12px] leading-[17px] text-muted">
+                  Toutes tes données seront effacées sans possibilité de récupération : profil,
+                  jetons, pronos, ligues et amis.
+                </Text>
+                {deleteError ? (
+                  <Text className="font-ui-medium text-[11px] text-red">{deleteError}</Text>
+                ) : null}
+                <Pressable
+                  onPress={handleDelete}
+                  disabled={deleting}
+                  className="items-center justify-center rounded-xl py-3.5"
+                  style={{ backgroundColor: deleting ? '#1C1C20' : '#E5484D' }}
+                >
+                  <Text
+                    className="font-display-bold text-[15px]"
+                    style={{ color: deleting ? '#6B7280' : '#FFFFFF' }}
+                  >
+                    {deleting ? 'Suppression…' : 'Oui, supprimer mon compte'}
+                  </Text>
+                </Pressable>
+                <Pressable
+                  onPress={() => setConfirmDelete(false)}
+                  disabled={deleting}
+                  className="items-center py-1"
+                >
+                  <Text className="font-ui-semibold text-[13px] text-muted">Annuler</Text>
+                </Pressable>
+              </View>
+            ) : (
+              <Pressable onPress={() => setConfirmDelete(true)} className="items-center py-1">
+                <Text className="font-ui-semibold text-[13px] text-red">Supprimer mon compte</Text>
+              </Pressable>
+            )}
           </View>
         </ScrollView>
       </View>
