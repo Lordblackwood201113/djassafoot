@@ -408,7 +408,9 @@ export const applyLiveScore = internalMutation({
     const patch: Record<string, unknown> = { updatedAt: Date.now(), status: args.status };
     if (args.homeScore !== undefined) patch.homeScore = args.homeScore;
     if (args.awayScore !== undefined) patch.awayScore = args.awayScore;
-    if (args.minute !== undefined) patch.minute = args.minute;
+    // minute : pilotée par l'appelant en live (nombre estimé, ou undefined = badge « Live » sans
+    // chiffre). Hors live, on EFFACE toute minute résiduelle (un match fini/à venir n'en affiche pas).
+    patch.minute = args.status === 'live' ? args.minute : undefined;
     if (args.winner) patch.winner = args.winner;
     if (args.homePenalty !== undefined) patch.homePenalty = args.homePenalty;
     if (args.awayPenalty !== undefined) patch.awayPenalty = args.awayPenalty;
@@ -577,6 +579,21 @@ export const ingestLiveFD = internalAction({
       const homePenalty = typeof pen?.home === 'number' ? pen.home : undefined;
       const awayPenalty = typeof pen?.away === 'number' ? pen.away : undefined;
 
+      // football-data.org ne fournit PAS la minute de jeu → on l'estime depuis le coup d'envoi.
+      // 1re période : temps écoulé (borné à 45'). PAUSED = mi-temps → 45'. 2e période (détectée via
+      // score.halfTime rempli) : temps écoulé − ~15 min de pause. Valeur aberrante (prolongations,
+      // coup d'envoi inconnu…) → undefined = badge « Live » sans chiffre plutôt qu'une minute fausse.
+      let minute: number | undefined;
+      if (status === 'live') {
+        const raw = Math.floor((now - m.kickoff) / 60000);
+        const secondHalf =
+          typeof sc.halfTime?.home === 'number' && typeof sc.halfTime?.away === 'number';
+        if (String(fd.status).toUpperCase() === 'PAUSED') minute = 45;
+        else if (!secondHalf) minute = Math.min(45, Math.max(1, raw));
+        else minute = Math.max(46, raw - 15);
+        if (minute > 130 || minute < 1) minute = undefined;
+      }
+
       await ctx.runMutation(internal.football.applyLiveScore, {
         matchId: m._id,
         status,
@@ -585,6 +602,7 @@ export const ingestLiveFD = internalAction({
         winner,
         homePenalty,
         awayPenalty,
+        minute,
       });
       updated++;
     }
