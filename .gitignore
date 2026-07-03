@@ -51,3 +51,6 @@ example
 
 # Wrangler local state
 .wrangler/
+
+# Android Studio / IntelliJ
+/.idea
