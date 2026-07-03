@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BrutalButton } from '@/components/brutal/BrutalButton';
 import { ScreenBackground } from '@/components/ScreenBackground';
 import { EVENTS, track } from '@/lib/analytics';
+import { usePrefsStore } from '@/store/prefsStore';
 
 const logo = require('../../assets/logo/djassafoot.png');
 
@@ -43,6 +44,8 @@ const ROWS = [
 
 export default function Index() {
   const { isLoaded, isSignedIn } = useAuth();
+  const onboardingDone = usePrefsStore((s) => s.onboardingDone);
+  const hasHydrated = usePrefsStore((s) => s.hasHydrated);
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
@@ -54,7 +57,9 @@ export default function Index() {
     }
   }, [isLoaded, isSignedIn]);
 
-  if (!isLoaded) {
+  // On attend Clerk ET la réhydratation des prefs avant de router (sinon flash d'onboarding pour un
+  // utilisateur qui l'a déjà vu, la valeur persistée arrivant de façon asynchrone).
+  if (!isLoaded || !hasHydrated) {
     return (
       <ScreenBackground variant="hero">
         <View className="flex-1 items-center justify-center">
@@ -66,6 +71,9 @@ export default function Index() {
   }
 
   if (isSignedIn) return <Redirect href="/home" />;
+
+  // 1er lancement (non connecté, onboarding pas encore vu) → écrans d'introduction + consentement.
+  if (!onboardingDone) return <Redirect href="/onboarding" />;
 
   return (
     <ScreenBackground variant="hero">
