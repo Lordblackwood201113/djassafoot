@@ -579,21 +579,9 @@ export const ingestLiveFD = internalAction({
       const homePenalty = typeof pen?.home === 'number' ? pen.home : undefined;
       const awayPenalty = typeof pen?.away === 'number' ? pen.away : undefined;
 
-      // football-data.org ne fournit PAS la minute de jeu → on l'estime depuis le coup d'envoi.
-      // 1re période : temps écoulé (borné à 45'). PAUSED = mi-temps → 45'. 2e période (détectée via
-      // score.halfTime rempli) : temps écoulé − ~15 min de pause. Valeur aberrante (prolongations,
-      // coup d'envoi inconnu…) → undefined = badge « Live » sans chiffre plutôt qu'une minute fausse.
-      let minute: number | undefined;
-      if (status === 'live') {
-        const raw = Math.floor((now - m.kickoff) / 60000);
-        const secondHalf =
-          typeof sc.halfTime?.home === 'number' && typeof sc.halfTime?.away === 'number';
-        if (String(fd.status).toUpperCase() === 'PAUSED') minute = 45;
-        else if (!secondHalf) minute = Math.min(45, Math.max(1, raw));
-        else minute = Math.max(46, raw - 15);
-        if (minute > 130 || minute < 1) minute = undefined;
-      }
-
+      // Pas de minute affichée : football-data.org ne la fournit pas et on préfère le STATUT
+      // (« Live » / « Terminé ») à une minute estimée imprécise. `applyLiveScore` efface donc toute
+      // minute résiduelle en live (args.minute laissé undefined → champ retiré).
       await ctx.runMutation(internal.football.applyLiveScore, {
         matchId: m._id,
         status,
@@ -602,7 +590,6 @@ export const ingestLiveFD = internalAction({
         winner,
         homePenalty,
         awayPenalty,
-        minute,
       });
       updated++;
     }
