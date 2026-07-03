@@ -85,6 +85,8 @@ export default defineSchema({
     // même quand le score réglementaire est nul (tirs au but / prolongation).
     winner: v.optional(v.union(v.literal('home'), v.literal('away'))),
     minute: v.optional(v.number()),
+    // Id du fixture API-Football (source LIVE fiable) — mappé une fois via TheSportsDB puis mémorisé.
+    apiFootballId: v.optional(v.string()),
     updatedAt: v.number(),
   })
     .index('by_api', ['apiId'])

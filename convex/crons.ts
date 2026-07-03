@@ -4,9 +4,11 @@ import { internal } from './_generated/api';
 
 const crons = cronJobs();
 
-// Scores en direct toutes les 1 min. `ingestLive` est GARDÉ (n'appelle l'API que si un match est
-// en cours/imminent), donc cette fréquence ne gaspille aucun quota hors des fenêtres de match.
-crons.interval('live scores', { minutes: 1 }, internal.football.ingestLive);
+// Scores en direct via API-Football (source fiable), toutes les 1 min. GARDÉ par liveWindowActive
+// → n'appelle l'API que pendant les fenêtres de match. ⚠️ 1 requête API-Football / match en cours /
+// minute → sur le plan GRATUIT (100/j) ça suffit pour ~1 match ; plan payant à prévoir pour couvrir
+// tout le tournoi. (`ingestLive` via TheSportsDB reste dispo en secours manuel : `convex run`.)
+crons.interval('live scores', { minutes: 1 }, internal.football.ingestLiveAF);
 
 // Calendrier complet de la CdM 2026 (scores/statuts finaux de TOUS les matchs) — 1 seul appel API.
 // Toutes les 10 min : finalise rapidement les matchs qui viennent de se terminer.

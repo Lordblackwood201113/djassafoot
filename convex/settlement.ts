@@ -35,7 +35,7 @@ function legResult(
 
 // Cœur de la résolution : règle tous les paris `pending` d'un match terminé.
 // Idempotent (ne touche que les paris `pending`) → un 2e appel ne re-paie pas.
-async function settleBetsForMatch(ctx: MutationCtx, match: Doc<'matches'>): Promise<number> {
+export async function settleBetsForMatch(ctx: MutationCtx, match: Doc<'matches'>): Promise<number> {
   if (match.status !== 'finished' || match.homeScore === undefined || match.awayScore === undefined) {
     return 0;
   }

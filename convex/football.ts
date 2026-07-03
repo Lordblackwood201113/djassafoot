@@ -2,7 +2,7 @@ import { v } from 'convex/values';
 
 import { api, internal } from './_generated/api';
 import { internalAction, internalMutation, internalQuery } from './_generated/server';
-import { resettleMatchBets } from './settlement';
+import { resettleMatchBets, settleBetsForMatch } from './settlement';
 
 // FIFA World Cup 2026 sur TheSportsDB (v2, header X-API-KEY).
 const WC_LEAGUE = '4429';
@@ -19,6 +19,15 @@ function mapStatus(s: any): 'scheduled' | 'live' | 'finished' {
   // 'AP' = After Penalties (match décidé aux tirs au but) — sinon il restait « scheduled ».
   if (['FT', 'AET', 'AP', 'PEN', 'AWD', 'WO'].includes(x)) return 'finished';
   if (['1H', 'HT', '2H', 'ET', 'BT', 'P', 'LIVE'].includes(x)) return 'live';
+  return 'scheduled';
+}
+
+// Statuts API-Football (fixture.status.short) → notre modèle. INT/SUSP restent « live » (match non
+// terminé). PST/CANC/ABD/TBD → scheduled (on ne casse pas un match à venir).
+function mapStatusAF(s: any): 'scheduled' | 'live' | 'finished' {
+  const x = String(s ?? '').toUpperCase();
+  if (['FT', 'AET', 'PEN', 'AWD', 'WO'].includes(x)) return 'finished';
+  if (['1H', 'HT', '2H', 'ET', 'BT', 'P', 'LIVE', 'INT', 'SUSP'].includes(x)) return 'live';
   return 'scheduled';
 }
 
@@ -84,10 +93,18 @@ export const upsertMatches = internalMutation({
         .unique();
       if (existing) {
         const wasFinished = existing.status === 'finished';
-        // L2 — anti-régression : un match TERMINÉ ne redevient jamais scheduled/live (un événement
-        // /livescore à strStatus vide mapperait sinon vers 'scheduled').
-        if (wasFinished && clean.status && clean.status !== 'finished') {
+        const existingStatus = existing.status;
+        // Anti-régression : un match commencé (live) ou terminé ne redevient jamais 'scheduled' via
+        // le calendrier TheSportsDB (souvent en retard). Le LIVE est piloté par API-Football.
+        if ((existingStatus === 'live' || existingStatus === 'finished') && clean.status === 'scheduled') {
           delete clean.status;
+        }
+        // Un match LIVE appartient à API-Football pour le score : le calendrier ne l'écrase pas
+        // (on laisse quand même TheSportsDB le FINALISER en 'finished' — filet de secours si l'AF tombe).
+        if (existingStatus === 'live' && clean.status !== 'finished') {
+          delete clean.homeScore;
+          delete clean.awayScore;
+          delete clean.minute;
         }
         // L3 — score corrigé APRÈS coup sur un match déjà terminé (VAR tardif, score live erroné).
         const scoreChanged =
@@ -331,5 +348,146 @@ export const ingestLive = internalAction({
       await ctx.runMutation(internal.settlement.resettleMatch, { matchId });
     }
     return count;
+  },
+});
+
+// ===========================================================================
+// LIVE via API-Football (source fiable). En gratuit, la requête par SAISON est bloquée, mais la
+// requête par FIXTURE (id) fonctionne → on poll chaque match en cours INDIVIDUELLEMENT.
+// ===========================================================================
+
+// Matchs candidats au live : dans la fenêtre [coup d'envoi −4h, +15min] et pas encore terminés.
+export const getLiveCandidates = internalQuery({
+  args: { now: v.number() },
+  handler: async (ctx, { now }) => {
+    const rows = await ctx.db
+      .query('matches')
+      .withIndex('by_kickoff', (q) =>
+        q.gte('kickoff', now - 4 * 60 * 60 * 1000).lte('kickoff', now + 15 * 60 * 1000),
+      )
+      .collect();
+    return rows.filter((m) => m.status !== 'finished');
+  },
+});
+
+export const setApiFootballId = internalMutation({
+  args: { matchId: v.id('matches'), apiFootballId: v.string() },
+  handler: async (ctx, { matchId, apiFootballId }) => {
+    await ctx.db.patch(matchId, { apiFootballId });
+  },
+});
+
+// Applique le statut/score live d'API-Football à un match + règle à la transition → finished
+// (le `winner` des t.a.b. est posé dans le même patch → le marché 1N2 est correct d'emblée).
+export const applyLiveScore = internalMutation({
+  args: {
+    matchId: v.id('matches'),
+    status: v.union(v.literal('scheduled'), v.literal('live'), v.literal('finished')),
+    homeScore: v.optional(v.number()),
+    awayScore: v.optional(v.number()),
+    minute: v.optional(v.number()),
+    winner: v.optional(v.union(v.literal('home'), v.literal('away'))),
+    homePenalty: v.optional(v.number()),
+    awayPenalty: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const existing = await ctx.db.get(args.matchId);
+    if (!existing) return;
+    const wasFinished = existing.status === 'finished';
+    const patch: Record<string, unknown> = { updatedAt: Date.now(), status: args.status };
+    if (args.homeScore !== undefined) patch.homeScore = args.homeScore;
+    if (args.awayScore !== undefined) patch.awayScore = args.awayScore;
+    if (args.minute !== undefined) patch.minute = args.minute;
+    if (args.winner) patch.winner = args.winner;
+    if (args.homePenalty !== undefined) patch.homePenalty = args.homePenalty;
+    if (args.awayPenalty !== undefined) patch.awayPenalty = args.awayPenalty;
+    await ctx.db.patch(args.matchId, patch);
+    if (!wasFinished && args.status === 'finished') {
+      const updated = await ctx.db.get(args.matchId);
+      if (updated) await settleBetsForMatch(ctx, updated);
+    }
+  },
+});
+
+// Scores en direct via API-Football (une requête par match en cours). No-op hors fenêtre de match.
+export const ingestLiveAF = internalAction({
+  args: {},
+  handler: async (ctx): Promise<number> => {
+    const afKey = process.env.API_FOOTBALL_KEY;
+    if (!afKey) return 0;
+    const now = Date.now();
+    const active = await ctx.runQuery(internal.football.liveWindowActive, { now });
+    if (!active) return 0;
+    const candidates = await ctx.runQuery(internal.football.getLiveCandidates, { now });
+
+    let updated = 0;
+    for (const m of candidates) {
+      // 1) idAPIfootball : mémorisé, sinon lookup TheSportsDB (une seule fois par match).
+      let idAF = m.apiFootballId;
+      if (!idAF && process.env.THESPORTSDB_KEY) {
+        try {
+          const evRes = await fetch(`${BASE}/lookup/event/${m.apiId}`, { headers: headers() });
+          if (evRes.ok) {
+            const ej: any = await evRes.json();
+            const found = (ej.lookup ?? ej.events ?? [])[0]?.idAPIfootball;
+            if (found) {
+              idAF = String(found);
+              await ctx.runMutation(internal.football.setApiFootballId, {
+                matchId: m._id,
+                apiFootballId: idAF,
+              });
+            }
+          }
+        } catch {
+          /* on réessaiera */
+        }
+      }
+      if (!idAF) continue;
+
+      // 2) statut/score live via API-Football (par fixture id → autorisé en gratuit).
+      try {
+        const afRes = await fetch(`https://v3.football.api-sports.io/fixtures?id=${idAF}`, {
+          headers: { 'x-apisports-key': afKey },
+        });
+        if (!afRes.ok) continue;
+        const f: any = ((await afRes.json())?.response ?? [])[0];
+        if (!f) continue;
+
+        const status = mapStatusAF(f.fixture?.status?.short);
+        const homeScore = typeof f.goals?.home === 'number' ? f.goals.home : undefined;
+        const awayScore = typeof f.goals?.away === 'number' ? f.goals.away : undefined;
+        const minute =
+          typeof f.fixture?.status?.elapsed === 'number' ? f.fixture.status.elapsed : undefined;
+
+        // `winner`/penalties UNIQUEMENT sur un match terminé à parité (donc décidé aux t.a.b.).
+        const finishedParity =
+          status === 'finished' && homeScore != null && awayScore != null && homeScore === awayScore;
+        const winner: 'home' | 'away' | undefined = finishedParity
+          ? f.teams?.home?.winner
+            ? 'home'
+            : f.teams?.away?.winner
+              ? 'away'
+              : undefined
+          : undefined;
+        const pen = finishedParity ? f.score?.penalty : undefined;
+        const homePenalty = typeof pen?.home === 'number' ? pen.home : undefined;
+        const awayPenalty = typeof pen?.away === 'number' ? pen.away : undefined;
+
+        await ctx.runMutation(internal.football.applyLiveScore, {
+          matchId: m._id,
+          status,
+          homeScore,
+          awayScore,
+          minute,
+          winner,
+          homePenalty,
+          awayPenalty,
+        });
+        updated++;
+      } catch {
+        /* réseau / quota API-Football → on réessaiera au prochain cron */
+      }
+    }
+    return updated;
   },
 });
