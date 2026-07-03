@@ -19,6 +19,8 @@ import type * as leagues from "../leagues.js";
 import type * as matchDetails from "../matchDetails.js";
 import type * as matches from "../matches.js";
 import type * as migrations from "../migrations.js";
+import type * as moderation from "../moderation.js";
+import type * as moderationLib from "../moderationLib.js";
 import type * as notifications from "../notifications.js";
 import type * as oddsShared from "../oddsShared.js";
 import type * as oddsSync from "../oddsSync.js";
@@ -44,6 +46,8 @@ declare const fullApi: ApiFromModules<{
   matchDetails: typeof matchDetails;
   matches: typeof matches;
   migrations: typeof migrations;
+  moderation: typeof moderation;
+  moderationLib: typeof moderationLib;
   notifications: typeof notifications;
   oddsShared: typeof oddsShared;
   oddsSync: typeof oddsSync;

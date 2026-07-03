@@ -270,8 +270,18 @@ export default function Profile() {
             </View>
           </View>
 
-          {/* Compte : déconnexion + suppression définitive */}
+          {/* Compte : comptes bloqués + déconnexion + suppression définitive */}
           <View className="mt-2 gap-3">
+            <Pressable
+              onPress={() => router.push('/blocked')}
+              className="flex-row items-center justify-between rounded-2xl border border-hairline bg-surface px-4 py-3.5"
+            >
+              <View className="flex-row items-center gap-2.5">
+                <Ionicons name="ban-outline" size={16} color="#A1A1AA" />
+                <Text className="font-ui-semibold text-[13px] text-white">Comptes bloqués</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={16} color="#6B7280" />
+            </Pressable>
             <BrutalButton label="Se déconnecter" variant="ghost" onPress={() => signOut()} />
 
             {confirmDelete ? (

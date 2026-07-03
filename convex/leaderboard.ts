@@ -1,5 +1,6 @@
 import type { Id } from './_generated/dataModel';
 import { query, type QueryCtx } from './_generated/server';
+import { blockedUserIds } from './moderationLib';
 
 async function currentUser(ctx: QueryCtx) {
   const identity = await ctx.auth.getUserIdentity();
@@ -14,11 +15,16 @@ async function currentUser(ctx: QueryCtx) {
 export const global = query({
   args: {},
   handler: async (ctx) => {
-    return await ctx.db
+    const top = await ctx.db
       .query('users')
       .withIndex('by_flames')
       .order('desc')
       .take(100);
+    // Masquer les joueurs bloqués (2 sens) pour l'utilisateur connecté.
+    const user = await currentUser(ctx);
+    if (!user) return top;
+    const blocked = await blockedUserIds(ctx, user._id);
+    return top.filter((u) => !blocked.has(u._id));
   },
 });
 
@@ -59,7 +65,10 @@ export const friends = query({
       }
     }
 
-    // Trier les membres par solde de jetons décroissant
-    return members.sort((a, b) => b.flames - a.flames);
+    // Exclure d'éventuels joueurs bloqués (2 sens), puis trier par solde décroissant.
+    const blocked = await blockedUserIds(ctx, user._id);
+    return members
+      .filter((u) => u._id === user._id || !blocked.has(u._id))
+      .sort((a, b) => b.flames - a.flames);
   },
 });

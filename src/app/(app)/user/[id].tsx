@@ -26,6 +26,14 @@ const FRIEND_BTN: Record<string, { label: string; variant: 'primary' | 'green' |
   accepted: { label: '✓ Amis', variant: 'ghost', act: false },
 };
 
+const REPORT_REASONS = [
+  'Contenu offensant',
+  'Harcèlement',
+  'Spam',
+  "Usurpation d'identité",
+  'Autre',
+];
+
 export default function UserProfile() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
@@ -36,7 +44,14 @@ export default function UserProfile() {
     | undefined;
   const sendRequest = useMutation(api.friends.sendRequest);
   const acceptRequest = useMutation(api.friends.acceptRequest);
+  const block = useMutation(api.moderation.block);
+  const unblock = useMutation(api.moderation.unblock);
+  const report = useMutation(api.moderation.report);
   const [busy, setBusy] = useState(false);
+  const [confirmBlock, setConfirmBlock] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
+  const [reporting, setReporting] = useState(false);
+  const [actionMsg, setActionMsg] = useState('');
 
   const onFriendAction = async () => {
     if (!profile || profile.isMe) return;
@@ -51,6 +66,46 @@ export default function UserProfile() {
       /* déjà en relation / erreur — ignoré ici */
     } finally {
       setBusy(false);
+    }
+  };
+
+  const onBlock = async () => {
+    if (!profile) return;
+    setBusy(true);
+    try {
+      await block({ userId: profile._id });
+      setConfirmBlock(false);
+      setActionMsg('');
+    } catch {
+      /* ignoré */
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const onUnblock = async () => {
+    if (!profile) return;
+    setBusy(true);
+    try {
+      await unblock({ userId: profile._id });
+    } catch {
+      /* ignoré */
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const onReport = async (reason: string) => {
+    if (!profile) return;
+    setReporting(true);
+    try {
+      const res = await report({ targetType: 'user', targetUserId: profile._id, reason });
+      setReportOpen(false);
+      setActionMsg(res?.already ? 'Déjà signalé. Merci.' : 'Signalement envoyé. Merci.');
+    } catch {
+      /* ignoré */
+    } finally {
+      setReporting(false);
     }
   };
 
@@ -95,43 +150,160 @@ export default function UserProfile() {
                 {profile.isMe ? ' · Toi' : ''}
               </Text>
 
-              {/* Stats */}
-              <View className="mt-1 flex-row items-stretch gap-2.5">
-                <Stat label="Jetons" value={`🪙 ${profile.flames.toLocaleString('fr-FR')}`} color="#FFFFFF" />
-                <Stat label="Pronos" value={`${profile.betCount}`} color="#A1A1AA" />
-                <Stat label="Gagnés" value={`${profile.wonCount}`} color="#6FA287" />
-              </View>
+              {/* Stats (masquées si le profil est bloqué dans un sens ou l'autre) */}
+              {!profile.blocked ? (
+                <View className="mt-1 flex-row items-stretch gap-2.5">
+                  <Stat label="Jetons" value={`🪙 ${profile.flames.toLocaleString('fr-FR')}`} color="#FFFFFF" />
+                  <Stat label="Pronos" value={`${profile.betCount}`} color="#A1A1AA" />
+                  <Stat label="Gagnés" value={`${profile.wonCount}`} color="#6FA287" />
+                </View>
+              ) : null}
 
-              {/* Bouton d'amitié (pas pour soi-même) */}
-              {!profile.isMe && btn ? (
-                <View className="mt-2 w-full">
-                  <BrutalButton
-                    label={btn.label}
-                    variant={btn.variant}
-                    onPress={btn.act ? onFriendAction : undefined}
-                    disabled={!btn.act}
-                    loading={busy}
-                  />
+              {/* Actions (pas pour soi-même) : ami + signaler + bloquer — OU débloquer si déjà bloqué */}
+              {!profile.isMe ? (
+                <View className="mt-2 w-full gap-2.5">
+                  {profile.iBlockedThem ? (
+                    <>
+                      <View className="rounded-xl border border-hairline bg-surface-2 px-3 py-2.5">
+                        <Text className="text-center font-ui-medium text-[12px] text-muted">
+                          Tu as bloqué ce joueur. Il n&apos;apparaît plus dans tes classements et ne peut
+                          pas t&apos;ajouter.
+                        </Text>
+                      </View>
+                      <BrutalButton
+                        label={busy ? 'Déblocage…' : 'Débloquer'}
+                        variant="ghost"
+                        loading={busy}
+                        onPress={onUnblock}
+                      />
+                    </>
+                  ) : profile.blocked ? (
+                    // L'autre joueur m'a bloqué : profil neutralisé, pas d'action d'ami trompeuse.
+                    <View className="rounded-xl border border-hairline bg-surface-2 px-3 py-2.5">
+                      <Text className="text-center font-ui-medium text-[12px] text-muted">
+                        Ce profil n&apos;est pas disponible.
+                      </Text>
+                    </View>
+                  ) : (
+                    <>
+                      {btn ? (
+                        <BrutalButton
+                          label={btn.label}
+                          variant={btn.variant}
+                          onPress={btn.act ? onFriendAction : undefined}
+                          disabled={!btn.act}
+                          loading={busy}
+                        />
+                      ) : null}
+
+                      <View className="flex-row items-center justify-center gap-6 pt-0.5">
+                        <Pressable
+                          onPress={() => {
+                            setReportOpen((v) => !v);
+                            setConfirmBlock(false);
+                          }}
+                          hitSlop={8}
+                          className="flex-row items-center gap-1.5"
+                        >
+                          <Ionicons name="flag-outline" size={14} color="#A1A1AA" />
+                          <Text className="font-ui-semibold text-[12px] text-muted">Signaler</Text>
+                        </Pressable>
+                        <Pressable
+                          onPress={() => {
+                            setConfirmBlock((v) => !v);
+                            setReportOpen(false);
+                          }}
+                          hitSlop={8}
+                          className="flex-row items-center gap-1.5"
+                        >
+                          <Ionicons name="ban-outline" size={14} color="#E5484D" />
+                          <Text className="font-ui-semibold text-[12px] text-red">Bloquer</Text>
+                        </Pressable>
+                      </View>
+
+                      {reportOpen ? (
+                        <View className="gap-2.5 rounded-2xl border border-hairline bg-surface p-3.5">
+                          <Text className="font-ui-semibold text-[12px] text-white">
+                            Signaler ce joueur pour :
+                          </Text>
+                          <View className="flex-row flex-wrap justify-center gap-2">
+                            {REPORT_REASONS.map((r) => (
+                              <Pressable
+                                key={r}
+                                onPress={() => onReport(r)}
+                                disabled={reporting}
+                                className="rounded-full border border-hairline bg-surface-2 px-3 py-1.5"
+                              >
+                                <Text className="font-ui-medium text-[12px] text-paper">{r}</Text>
+                              </Pressable>
+                            ))}
+                          </View>
+                        </View>
+                      ) : null}
+
+                      {confirmBlock ? (
+                        <View className="gap-3 rounded-2xl border border-red/40 bg-surface p-4">
+                          <Text className="font-ui-semibold text-[13px] text-white">
+                            Bloquer {profile.username} ?
+                          </Text>
+                          <Text className="font-ui-medium text-[12px] leading-[17px] text-muted">
+                            Vous ne verrez plus vos contenus respectifs (classements, recherche) et ne
+                            pourrez plus vous ajouter en ami. Votre amitié éventuelle sera retirée.
+                          </Text>
+                          <Pressable
+                            onPress={onBlock}
+                            disabled={busy}
+                            className="items-center justify-center rounded-xl py-3.5"
+                            style={{ backgroundColor: busy ? '#1C1C20' : '#E5484D' }}
+                          >
+                            <Text
+                              className="font-display-bold text-[15px]"
+                              style={{ color: busy ? '#6B7280' : '#FFFFFF' }}
+                            >
+                              {busy ? 'Blocage…' : 'Oui, bloquer'}
+                            </Text>
+                          </Pressable>
+                          <Pressable
+                            onPress={() => setConfirmBlock(false)}
+                            disabled={busy}
+                            className="items-center py-1"
+                          >
+                            <Text className="font-ui-semibold text-[13px] text-muted">Annuler</Text>
+                          </Pressable>
+                        </View>
+                      ) : null}
+                    </>
+                  )}
+
+                  {actionMsg ? (
+                    <Text className="text-center font-ui-medium text-[12px] text-green">
+                      {actionMsg}
+                    </Text>
+                  ) : null}
                 </View>
               ) : null}
             </BrutalBox>
 
-            {/* Ses pronos */}
-            <View className="flex-row items-center gap-2 pt-1">
-              <Text className="font-display text-base text-white">Ses pronos</Text>
-            </View>
+            {/* Ses pronos (masqués si le profil est bloqué) */}
+            {!profile.blocked ? (
+              <>
+                <View className="flex-row items-center gap-2 pt-1">
+                  <Text className="font-display text-base text-white">Ses pronos</Text>
+                </View>
 
-            {bets === undefined ? (
-              <ActivityIndicator color="#A1A1AA" className="my-8" />
-            ) : bets.length === 0 ? (
-              <Text className="py-6 text-center font-ui-medium text-xs text-muted">
-                Aucun prono pour le moment.
-              </Text>
-            ) : (
-              // La carte contient déjà tout le pari ; pas de navigation (l'écran détail
-              // /bet est réservé à SES propres paris).
-              bets.map((b) => <BetCard key={b._id} bet={b} />)
-            )}
+                {bets === undefined ? (
+                  <ActivityIndicator color="#A1A1AA" className="my-8" />
+                ) : bets.length === 0 ? (
+                  <Text className="py-6 text-center font-ui-medium text-xs text-muted">
+                    Aucun prono pour le moment.
+                  </Text>
+                ) : (
+                  // La carte contient déjà tout le pari ; pas de navigation (l'écran détail
+                  // /bet est réservé à SES propres paris).
+                  bets.map((b) => <BetCard key={b._id} bet={b} />)
+                )}
+              </>
+            ) : null}
           </ScrollView>
         )}
       </View>

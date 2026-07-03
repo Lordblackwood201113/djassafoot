@@ -2,6 +2,7 @@ import { v } from 'convex/values';
 
 import type { Id } from './_generated/dataModel';
 import { mutation, query, type MutationCtx, type QueryCtx } from './_generated/server';
+import { blockedUserIds, isNameAllowed, purgeLeagueReports } from './moderationLib';
 
 async function currentUser(ctx: QueryCtx) {
   const identity = await ctx.auth.getUserIdentity();
@@ -61,6 +62,7 @@ export const create = mutation({
     if (!user) throw new Error('Non authentifié');
     const clean = name.trim().slice(0, 40);
     if (clean.length < 2) throw new Error('Nom de ligue trop court');
+    if (!isNameAllowed(clean)) throw new Error("Ce nom n'est pas autorisé.");
     const now = Date.now();
     const code = await uniqueCode(ctx);
     const leagueId = await ctx.db.insert('leagues', {
@@ -182,6 +184,7 @@ export const leave = mutation({
             /* déjà supprimé */
           }
         }
+        await purgeLeagueReports(ctx, leagueId);
         await ctx.db.delete(leagueId);
       } else {
         const next = rest.sort((a, b) => a.joinedAt - b.joinedAt)[0];
@@ -213,6 +216,7 @@ export const remove = mutation({
         /* déjà supprimé */
       }
     }
+    await purgeLeagueReports(ctx, leagueId);
     await ctx.db.delete(leagueId);
     return { removed: true };
   },
@@ -285,10 +289,12 @@ export const detail = query({
       .collect();
     if (!memberships.some((m) => m.userId === user._id)) return null; // réservé aux membres
 
+    const blocked = await blockedUserIds(ctx, user._id);
     const rows = [];
     for (const mem of memberships) {
       const u = await ctx.db.get(mem.userId);
       if (!u) continue;
+      if (u._id !== user._id && blocked.has(u._id)) continue; // membre bloqué → masqué (Q2)
       rows.push({
         userId: u._id,
         username: u.username,
@@ -307,7 +313,7 @@ export const detail = query({
       logoUrl: league.logoId ? await ctx.storage.getUrl(league.logoId) : null,
       code: league.code,
       isOwner: league.ownerId === user._id,
-      memberCount: rows.length,
+      memberCount: memberships.length,
       members: rows,
     };
   },

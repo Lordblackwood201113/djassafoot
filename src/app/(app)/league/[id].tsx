@@ -15,6 +15,8 @@ import { pickSquareImage, uploadToConvex } from '@/lib/leagueLogo';
 
 const MUT2 = '#6B7280';
 
+const LEAGUE_REPORT_REASONS = ['Nom offensant', 'Logo inapproprié', 'Spam', 'Autre'];
+
 function initials(name?: string) {
   if (!name) return '?';
   const p = name.trim().split(/\s+/).filter(Boolean);
@@ -42,6 +44,10 @@ export default function LeagueDetail() {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [shareMsg, setShareMsg] = useState('');
   const [logoBusy, setLogoBusy] = useState(false);
+  const report = useMutation(api.moderation.report);
+  const [reportOpen, setReportOpen] = useState(false);
+  const [reporting, setReporting] = useState(false);
+  const [reportMsg, setReportMsg] = useState('');
 
   // Importe une image de l'appareil → upload Convex → définit le logo de la ligue.
   const onChangeLogo = async () => {
@@ -145,6 +151,20 @@ export default function LeagueDetail() {
       router.replace('/leaderboard');
     } finally {
       setBusy(false);
+    }
+  };
+
+  const onReportLeague = async (reason: string) => {
+    if (!league) return;
+    setReporting(true);
+    try {
+      const res = await report({ targetType: 'league', targetLeagueId: league._id, reason });
+      setReportOpen(false);
+      setReportMsg(res?.already ? 'Déjà signalée. Merci.' : 'Ligue signalée. Merci.');
+    } catch {
+      /* ignoré */
+    } finally {
+      setReporting(false);
     }
   };
 
@@ -330,6 +350,42 @@ export default function LeagueDetail() {
               ) : (
                 <BrutalButton label="Quitter la ligue" variant="ghost" onPress={onLeave} loading={busy} />
               )}
+
+              {/* Signaler la ligue (pour un membre non-admin) */}
+              {!league.isOwner ? (
+                <>
+                  <Pressable
+                    onPress={() => setReportOpen((v) => !v)}
+                    hitSlop={8}
+                    className="flex-row items-center justify-center gap-1.5 pt-0.5"
+                  >
+                    <Ionicons name="flag-outline" size={13} color="#A1A1AA" />
+                    <Text className="font-ui-semibold text-[12px] text-muted">Signaler la ligue</Text>
+                  </Pressable>
+                  {reportOpen ? (
+                    <View className="gap-2.5 rounded-2xl border border-hairline bg-surface p-3.5">
+                      <Text className="font-ui-semibold text-[12px] text-white">
+                        Signaler cette ligue pour :
+                      </Text>
+                      <View className="flex-row flex-wrap justify-center gap-2">
+                        {LEAGUE_REPORT_REASONS.map((r) => (
+                          <Pressable
+                            key={r}
+                            onPress={() => onReportLeague(r)}
+                            disabled={reporting}
+                            className="rounded-full border border-hairline bg-surface-2 px-3 py-1.5"
+                          >
+                            <Text className="font-ui-medium text-[12px] text-paper">{r}</Text>
+                          </Pressable>
+                        ))}
+                      </View>
+                    </View>
+                  ) : null}
+                  {reportMsg ? (
+                    <Text className="text-center font-ui-medium text-[12px] text-green">{reportMsg}</Text>
+                  ) : null}
+                </>
+              ) : null}
             </View>
           </ScrollView>
         )}

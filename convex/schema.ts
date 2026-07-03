@@ -251,4 +251,34 @@ export default defineSchema({
     .index('by_league', ['leagueId'])
     .index('by_user', ['userId'])
     .index('by_league_user', ['leagueId', 'userId']),
+
+  // Modération : signalements de contenu utilisateur (un joueur OU une ligue).
+  reports: defineTable({
+    reporterId: v.id('users'),
+    targetType: v.union(v.literal('user'), v.literal('league')),
+    targetUserId: v.optional(v.id('users')),
+    targetLeagueId: v.optional(v.id('leagues')),
+    reason: v.string(),
+    details: v.optional(v.string()),
+    status: v.union(
+      v.literal('pending'),
+      v.literal('reviewed'),
+      v.literal('dismissed'),
+    ),
+    createdAt: v.number(),
+  })
+    .index('by_status', ['status'])
+    .index('by_reporter', ['reporterId'])
+    .index('by_target_user', ['targetUserId'])
+    .index('by_target_league', ['targetLeagueId']),
+
+  // Modération : un joueur en bloque un autre (masquage réciproque + coupe les interactions).
+  blocks: defineTable({
+    blockerId: v.id('users'),
+    blockedId: v.id('users'),
+    createdAt: v.number(),
+  })
+    .index('by_blocker', ['blockerId'])
+    .index('by_blocked', ['blockedId'])
+    .index('by_blocker_blocked', ['blockerId', 'blockedId']),
 });

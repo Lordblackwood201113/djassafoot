@@ -3,6 +3,7 @@ import { v } from 'convex/values';
 import type { Doc } from './_generated/dataModel';
 import { mutation, query, type QueryCtx } from './_generated/server';
 import { validateLegs } from './betRules';
+import { blockedUserIds } from './moderationLib';
 import {
   exactOdds,
   lambdasFor,
@@ -206,6 +207,9 @@ export const forUser = query({
   handler: async (ctx, { userId }) => {
     const me = await currentUser(ctx);
     if (!me) return [];
+    // Blocage (2 sens) : ne pas exposer l'historique de paris d'un joueur bloqué.
+    const blocked = await blockedUserIds(ctx, me._id);
+    if (blocked.has(userId)) return [];
     const bets = await ctx.db
       .query('bets')
       .withIndex('by_user', (q) => q.eq('userId', userId))

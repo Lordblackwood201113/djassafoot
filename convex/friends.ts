@@ -2,6 +2,7 @@ import { v } from 'convex/values';
 
 import type { Id } from './_generated/dataModel';
 import { mutation, query, type QueryCtx } from './_generated/server';
+import { blockedUserIds } from './moderationLib';
 
 async function currentUser(ctx: QueryCtx) {
   const identity = await ctx.auth.getUserIdentity();
@@ -24,7 +25,10 @@ export const searchUsers = query({
     // Recherche INSENSIBLE À LA CASSE (pseudos Clerk souvent en majuscule → l'index
     // lexicographique par préfixe échouait). Petit volume → scan borné + filtre en mémoire.
     const all = await ctx.db.query('users').take(1000);
-    const results = all.filter((u) => u.username.toLowerCase().includes(qq)).slice(0, 15);
+    const blocked = await blockedUserIds(ctx, user._id);
+    const results = all
+      .filter((u) => u.username.toLowerCase().includes(qq) && !blocked.has(u._id))
+      .slice(0, 15);
 
     // Récupérer toutes les relations de l'utilisateur pour calculer les statuts d'amitié
     const sent = await ctx.db
@@ -80,9 +84,11 @@ export const listPendingRequests = query({
       .collect();
 
     const pending = received.filter((f) => f.status === 'pending');
+    const blocked = await blockedUserIds(ctx, user._id);
 
     const list = [];
     for (const p of pending) {
+      if (blocked.has(p.userId)) continue; // demande d'un joueur bloqué → masquée
       const sender = await ctx.db.get(p.userId);
       if (sender) {
         list.push({
@@ -109,6 +115,10 @@ export const sendRequest = mutation({
 
     const friend = await ctx.db.get(friendId);
     if (!friend) throw new Error('Utilisateur destinataire introuvable');
+
+    // Blocage (2 sens) → interaction interdite.
+    const blocked = await blockedUserIds(ctx, user._id);
+    if (blocked.has(friendId)) throw new Error('Action impossible avec ce joueur.');
 
     // Vérifier s'il y a déjà une relation dans un sens ou dans l'autre
     const existingSent = await ctx.db

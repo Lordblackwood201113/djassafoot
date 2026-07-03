@@ -1,6 +1,7 @@
 import { v } from 'convex/values';
 
 import { mutation, query, type QueryCtx } from './_generated/server';
+import { blockedUserIds, isNameAllowed, purgeUser } from './moderationLib';
 
 const SIGNUP_BONUS = 500;
 
@@ -40,7 +41,9 @@ export const store = mutation({
 
     if (existing) {
       // Garde le profil à jour si Clerk a changé
-      const nextName = identity.nickname ?? identity.name ?? existing.username;
+      const rawNext = identity.nickname ?? identity.name ?? existing.username;
+      // Filtre de mots : si le pseudo Clerk devient interdit, on GARDE l'ancien (pas de throw → login OK).
+      const nextName = isNameAllowed(rawNext) ? rawNext : existing.username;
       if (nextName !== existing.username || identity.pictureUrl !== existing.avatarUrl) {
         await ctx.db.patch(existing._id, {
           username: nextName,
@@ -51,11 +54,13 @@ export const store = mutation({
     }
 
     const now = Date.now();
-    const username =
+    const rawUsername =
       identity.nickname ??
       identity.name ??
       identity.email?.split('@')[0] ??
       'Joueur';
+    // Filtre de mots : pseudo interdit → neutralisé (pas de throw, sinon on casse l'inscription).
+    const username = isNameAllowed(rawUsername) ? rawUsername : 'Joueur';
 
     const userId = await ctx.db.insert('users', {
       tokenIdentifier: identity.subject,
@@ -93,24 +98,39 @@ export const publicProfile = query({
 
     let relationship: 'none' | 'pending_sent' | 'pending_received' | 'accepted' = 'none';
     let relationshipId: string | null = null;
+    let iBlockedThem = false;
+    let isBlocked = false;
     if (me && me._id !== userId) {
-      const sent = await ctx.db
-        .query('friends')
-        .withIndex('by_user', (q) => q.eq('userId', me._id))
-        .collect();
-      const s = sent.find((f) => f.friendId === userId);
-      if (s) {
-        relationship = s.status === 'accepted' ? 'accepted' : 'pending_sent';
-        relationshipId = s._id;
+      // Blocage (2 sens) → aucune interaction d'ami exposée ; on marque si c'est MOI qui bloque.
+      const blocked = await blockedUserIds(ctx, me._id);
+      if (blocked.has(userId)) {
+        isBlocked = true;
+        const iBlocked = await ctx.db
+          .query('blocks')
+          .withIndex('by_blocker_blocked', (q) =>
+            q.eq('blockerId', me._id).eq('blockedId', userId),
+          )
+          .unique();
+        iBlockedThem = !!iBlocked;
       } else {
-        const received = await ctx.db
+        const sent = await ctx.db
           .query('friends')
-          .withIndex('by_friend', (q) => q.eq('friendId', me._id))
+          .withIndex('by_user', (q) => q.eq('userId', me._id))
           .collect();
-        const r = received.find((f) => f.userId === userId);
-        if (r) {
-          relationship = r.status === 'accepted' ? 'accepted' : 'pending_received';
-          relationshipId = r._id;
+        const s = sent.find((f) => f.friendId === userId);
+        if (s) {
+          relationship = s.status === 'accepted' ? 'accepted' : 'pending_sent';
+          relationshipId = s._id;
+        } else {
+          const received = await ctx.db
+            .query('friends')
+            .withIndex('by_friend', (q) => q.eq('friendId', me._id))
+            .collect();
+          const r = received.find((f) => f.userId === userId);
+          if (r) {
+            relationship = r.status === 'accepted' ? 'accepted' : 'pending_received';
+            relationshipId = r._id;
+          }
         }
       }
     }
@@ -119,14 +139,18 @@ export const publicProfile = query({
       _id: u._id,
       username: u.username,
       avatarUrl: u.avatarUrl,
-      flames: u.flames,
-      streak: u.streak,
+      // Profil bloqué (2 sens) : stats neutralisées (le contenu réel — l'historique de
+      // paris — est masqué séparément dans bets.forUser).
+      flames: isBlocked ? 0 : u.flames,
+      streak: isBlocked ? 0 : u.streak,
       createdAt: u.createdAt,
-      betCount: bets.length,
-      wonCount,
+      betCount: isBlocked ? 0 : bets.length,
+      wonCount: isBlocked ? 0 : wonCount,
       isMe: me?._id === userId,
       relationship,
       relationshipId,
+      iBlockedThem,
+      blocked: isBlocked,
     };
   },
 });
@@ -140,56 +164,8 @@ export const deleteMyAccount = mutation({
   handler: async (ctx) => {
     const user = await currentUser(ctx);
     if (!user) throw new Error('Non authentifié');
-    const uid = user._id;
-    const purge = async (docs: { _id: any }[]) => {
-      for (const d of docs) await ctx.db.delete(d._id);
-    };
-
-    // Ligues possédées : si d'autres joueurs y sont encore, on TRANSFÈRE la propriété au plus ancien
-    // membre restant (cohérent avec `leagues.leave`) pour ne pas détruire la ligue des autres ;
-    // sinon (j'en suis le seul membre) on supprime la ligue + son logo.
-    const ownedLeagues = await ctx.db
-      .query('leagues')
-      .withIndex('by_owner', (q) => q.eq('ownerId', uid))
-      .collect();
-    for (const lg of ownedLeagues) {
-      const members = await ctx.db
-        .query('leagueMembers')
-        .withIndex('by_league', (q) => q.eq('leagueId', lg._id))
-        .collect();
-      const others = members.filter((m) => m.userId !== uid);
-      if (others.length === 0) {
-        if (lg.logoId) {
-          try {
-            await ctx.storage.delete(lg.logoId);
-          } catch {
-            /* déjà supprimé */
-          }
-        }
-        await ctx.db.delete(lg._id);
-      } else {
-        const next = others.sort((a, b) => a.joinedAt - b.joinedAt)[0];
-        await ctx.db.patch(lg._id, { ownerId: next.userId });
-      }
-    }
-
-    // Toutes mes adhésions (ligues transférées, ligues supprimées, ou ligues d'autres joueurs).
-    await purge(
-      await ctx.db.query('leagueMembers').withIndex('by_user', (q) => q.eq('userId', uid)).collect(),
-    );
-    await purge(await ctx.db.query('bets').withIndex('by_user', (q) => q.eq('userId', uid)).collect());
-    await purge(
-      await ctx.db.query('flameTransactions').withIndex('by_user', (q) => q.eq('userId', uid)).collect(),
-    );
-    await purge(
-      await ctx.db.query('notifications').withIndex('by_user', (q) => q.eq('userId', uid)).collect(),
-    );
-    await purge(await ctx.db.query('friends').withIndex('by_user', (q) => q.eq('userId', uid)).collect());
-    await purge(
-      await ctx.db.query('friends').withIndex('by_friend', (q) => q.eq('friendId', uid)).collect(),
-    );
-
-    await ctx.db.delete(uid);
+    // Cascade centralisée dans `moderationLib.purgeUser` (réutilisée par l'admin `banUser`).
+    await purgeUser(ctx, user._id);
     return { ok: true };
   },
 });
