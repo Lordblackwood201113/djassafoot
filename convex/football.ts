@@ -510,14 +510,31 @@ export const ingestLiveAF = internalAction({
 // IN_PLAY/PAUSED/FINISHED + score + vainqueur (t.a.b. inclus). Quota 10/min → très large.
 // ===========================================================================
 
-// Normalise un nom d'équipe pour le rapprochement inter-sources (accents, mots parasites, casse).
+// Alias des variantes de noms entre sources (football-data.org vs TheSportsDB). Le côté « canonique »
+// (usa, iran…) retombe naturellement sur la même clé, donc seules les VARIANTES sont listées.
+const TEAM_ALIASES: Record<string, string> = {
+  unitedstates: 'usa',
+  korearepublic: 'skorea',
+  southkorea: 'skorea',
+  republicofkorea: 'skorea',
+  koreadpr: 'nkorea',
+  northkorea: 'nkorea',
+  iriran: 'iran',
+  chinapr: 'china',
+  cotedivoire: 'ivorycoast',
+  congodr: 'drcongo', // « Congo DR » (FD) ↔ « DR Congo » (base), ordre des mots inversé
+  czechrepublic: 'czechia',
+};
+
+// Normalise un nom d'équipe pour le rapprochement inter-sources (accents, mots parasites, alias).
 function normTeam(s: any): string {
-  return String(s ?? '')
+  const x = String(s ?? '')
     .toLowerCase()
     .normalize('NFD')
     .replace(/[̀-ͯ]/g, '')
-    .replace(/\b(islands?|republic|the|of|and)\b/g, '')
+    .replace(/\b(islands?|the|of|and)\b/g, '')
     .replace(/[^a-z]/g, '');
+  return TEAM_ALIASES[x] ?? x;
 }
 
 // Un match football-data.org correspond-il à un des nôtres ? (équipes fuzzy + coup d'envoi ±3h)
@@ -563,21 +580,40 @@ export const ingestLiveFD = internalAction({
       const status = mapStatusFD(fd.status);
       const sc = fd.score ?? {};
       const ft = sc.fullTime ?? {};
-      const homeScore = typeof ft.home === 'number' ? ft.home : undefined;
-      const awayScore = typeof ft.away === 'number' ? ft.away : undefined;
-      // `winner`/penalties UNIQUEMENT sur un match terminé à parité (décidé aux t.a.b.).
-      const finishedParity =
-        status === 'finished' && homeScore != null && awayScore != null && homeScore === awayScore;
-      const winner: 'home' | 'away' | undefined = finishedParity
-        ? sc.winner === 'HOME_TEAM'
-          ? 'home'
-          : sc.winner === 'AWAY_TEAM'
-            ? 'away'
-            : undefined
-        : undefined;
-      const pen = finishedParity ? sc.penalties : undefined;
-      const homePenalty = typeof pen?.home === 'number' ? pen.home : undefined;
-      const awayPenalty = typeof pen?.away === 'number' ? pen.away : undefined;
+      const rt = sc.regularTime ?? {};
+      const et = sc.extraTime ?? {};
+      const pnl = sc.penalties ?? {};
+      const shootout = String(sc.duration ?? '').toUpperCase() === 'PENALTY_SHOOTOUT';
+
+      // ⚠️ football-data.org REPLIE les tirs au but dans `fullTime` (ex. 1-1 + t.a.b. 2-3 → fullTime 3-4).
+      // Pour le règlement il nous faut le score de FIN DE PROLONGATIONS (à parité), pas `fullTime`.
+      let homeScore: number | undefined;
+      let awayScore: number | undefined;
+      if (shootout && typeof rt.home === 'number' && typeof rt.away === 'number') {
+        homeScore = rt.home + (typeof et.home === 'number' ? et.home : 0);
+        awayScore = rt.away + (typeof et.away === 'number' ? et.away : 0);
+      } else if (shootout && typeof ft.home === 'number' && typeof pnl.home === 'number') {
+        // Secours si regularTime absent : score de prolongations = fullTime − t.a.b.
+        homeScore = ft.home - pnl.home;
+        awayScore = ft.away - pnl.away;
+      } else {
+        homeScore = typeof ft.home === 'number' ? ft.home : undefined;
+        awayScore = typeof ft.away === 'number' ? ft.away : undefined;
+      }
+
+      // Vainqueur + t.a.b. : sur un match TERMINÉ décidé aux tirs au but (séance présente).
+      const parity = homeScore != null && awayScore != null && homeScore === awayScore;
+      const isPenFinish =
+        status === 'finished' && (shootout || (parity && typeof pnl.home === 'number'));
+      const homePenalty = isPenFinish && typeof pnl.home === 'number' ? pnl.home : undefined;
+      const awayPenalty = isPenFinish && typeof pnl.away === 'number' ? pnl.away : undefined;
+      let winner: 'home' | 'away' | undefined;
+      if (isPenFinish) {
+        if (sc.winner === 'HOME_TEAM') winner = 'home';
+        else if (sc.winner === 'AWAY_TEAM') winner = 'away';
+        else if (homePenalty != null && awayPenalty != null && homePenalty !== awayPenalty)
+          winner = homePenalty > awayPenalty ? 'home' : 'away'; // FD `winner` parfois null → t.a.b.
+      }
 
       // Pas de minute affichée : football-data.org ne la fournit pas et on préfère le STATUT
       // (« Live » / « Terminé ») à une minute estimée imprécise. `applyLiveScore` efface donc toute
