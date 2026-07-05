@@ -33,12 +33,13 @@ function mapStatusAF(s: any): 'scheduled' | 'live' | 'finished' {
   return 'scheduled';
 }
 
-// Statuts football-data.org → notre modèle. PAUSED = mi-temps (= live). POSTPONED/CANCELLED/TIMED
-// /SCHEDULED → scheduled.
+// Statuts football-data.org → notre modèle. ⚠️ FD renvoie SELON LES CAS `IN_PLAY` **OU** `LIVE`
+// pour un match en cours (vérifié en direct : Argentine=IN_PLAY, Brésil-Norvège=LIVE) → gérer LES DEUX.
+// PAUSED = mi-temps (= live). POSTPONED/CANCELLED/TIMED/SCHEDULED → scheduled.
 function mapStatusFD(s: any): 'scheduled' | 'live' | 'finished' {
   const x = String(s ?? '').toUpperCase();
   if (['FINISHED', 'AWARDED'].includes(x)) return 'finished';
-  if (['IN_PLAY', 'PAUSED', 'SUSPENDED'].includes(x)) return 'live';
+  if (['IN_PLAY', 'LIVE', 'PAUSED', 'SUSPENDED'].includes(x)) return 'live';
   return 'scheduled';
 }
 
