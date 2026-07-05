@@ -31,6 +31,7 @@ export default defineSchema({
       v.literal('prediction_stake'),
       v.literal('prediction_win'),
       v.literal('settlement_correction'), // correction admin d'un règlement erroné (montant +/-)
+      v.literal('refund'), // remboursement d'une mise (pari annulé) — montant = mise rendue
     ),
     refId: v.optional(v.string()),
     createdAt: v.number(),

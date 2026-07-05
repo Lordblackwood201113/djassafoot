@@ -91,3 +91,95 @@ export const resettleBetOnScore = internalMutation({
     return { user: user?.username, removed: credited, newBalance, notifsCorrigees: notifs.length };
   },
 });
+
+// Outil admin : rembourse TOUS les paris des utilisateurs ayant placé PLUS D'UN pari sur un match
+// (application de la règle CGU « un seul pronostic par événement »). Rembourser = rendre la mise,
+// annuler le pari (statut 'void'), retirer un gain éventuellement déjà crédité, journaliser une
+// transaction 'refund' et notifier l'utilisateur. Les joueurs à UN seul pari ne sont pas touchés.
+// Idempotent : un pari déjà 'void' est ignoré (2e passage = no-op).
+//   Aperçu :  npx convex run migrations:refundMultiBetsForMatch '{"matchId":"<id>","dryRun":true}'
+//   Exécuter : npx convex run migrations:refundMultiBetsForMatch '{"matchId":"<id>"}'
+export const refundMultiBetsForMatch = internalMutation({
+  args: { matchId: v.id('matches'), dryRun: v.optional(v.boolean()) },
+  handler: async (ctx, { matchId, dryRun }) => {
+    const match = await ctx.db.get(matchId);
+    if (!match) return { error: 'match introuvable' };
+
+    const bets = await ctx.db
+      .query('bets')
+      .withIndex('by_match', (q) => q.eq('matchId', matchId))
+      .collect();
+
+    // Regroupe par utilisateur, tous statuts confondus (pour déterminer « > 1 pari »).
+    const byUser = new Map<string, typeof bets>();
+    for (const b of bets) {
+      const arr = byUser.get(b.userId) ?? [];
+      arr.push(b);
+      byUser.set(b.userId, arr);
+    }
+
+    const now = Date.now();
+    const details: Array<Record<string, unknown>> = [];
+    let betsRefunded = 0;
+    let totalStakeReturned = 0;
+
+    for (const [, userBets] of byUser) {
+      if (userBets.length <= 1) continue; // uniquement ceux ayant placé PLUS d'un pari
+      const toRefund = userBets.filter((b) => b.status !== 'void'); // idempotence
+      if (toRefund.length === 0) continue;
+
+      const user = await ctx.db.get(userBets[0].userId);
+      let balanceDelta = 0;
+      for (const bet of toRefund) {
+        // Rendre la mise, et retirer un gain si le pari avait déjà été réglé gagnant → solde
+        // ramené à l'état « comme si le pari n'avait pas existé ».
+        const delta = bet.stake - (bet.payout ?? 0);
+        balanceDelta += delta;
+        totalStakeReturned += bet.stake;
+        betsRefunded++;
+        if (!dryRun) {
+          await ctx.db.patch(bet._id, { status: 'void', payout: 0, settledAt: now });
+          await ctx.db.insert('flameTransactions', {
+            userId: bet.userId,
+            amount: delta,
+            reason: 'refund',
+            refId: bet._id,
+            createdAt: now,
+          });
+        }
+      }
+
+      if (user && !dryRun) {
+        await ctx.db.patch(user._id, { flames: user.flames + balanceDelta });
+        await ctx.db.insert('notifications', {
+          userId: user._id,
+          kind: 'bets_refunded',
+          title: 'Paris remboursés 🪙',
+          body: `Un seul pronostic est autorisé par match. Tes ${toRefund.length} pronostics sur ${match.homeName} - ${match.awayName} ont été annulés et intégralement remboursés.`,
+          matchId: match._id,
+          read: false,
+          createdAt: now,
+        });
+      }
+
+      details.push({
+        user: user?.username ?? userBets[0].userId,
+        parisTotal: userBets.length,
+        parisRembourses: toRefund.length,
+        miseRendue: toRefund.reduce((s, b) => s + b.stake, 0),
+        soldeDelta: balanceDelta,
+        soldeAvant: user?.flames,
+        soldeApres: (user?.flames ?? 0) + balanceDelta,
+      });
+    }
+
+    return {
+      match: `${match.homeName} - ${match.awayName}`,
+      dryRun: !!dryRun,
+      joueursConcernes: details.length,
+      parisRembourses: betsRefunded,
+      totalMiseRendue: totalStakeReturned,
+      details,
+    };
+  },
+});

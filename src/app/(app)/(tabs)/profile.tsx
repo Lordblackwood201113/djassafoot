@@ -22,6 +22,7 @@ const TX_LABEL: Record<string, string> = {
   referral: 'Parrainage',
   prediction_stake: 'Mise prono',
   prediction_win: 'Prono gagné',
+  refund: 'Pari remboursé',
 };
 
 const HISTORY_PREVIEW = 5;
