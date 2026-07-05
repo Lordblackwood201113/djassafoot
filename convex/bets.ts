@@ -257,6 +257,17 @@ export const place = mutation({
       throw new Error('Mise invalide');
     if (stake > user.flames) throw new Error('Solde de jetons insuffisant');
 
+    // 1 seul pronostic par match (règle CGU « un seul pronostic par événement »). On IGNORE les paris
+    // 'void' (remboursés/annulés) qui rouvrent le droit de parier. Un combiné multi-legs = 1 document,
+    // donc on compte des paris, pas des sélections. Placé AVANT tout débit (fail-fast, aucun jeton retiré).
+    const existingBets = await ctx.db
+      .query('bets')
+      .withIndex('by_match', (q) => q.eq('matchId', matchId))
+      .collect();
+    if (existingBets.some((b) => b.userId === user._id && b.status !== 'void')) {
+      throw new Error('Tu as déjà un pronostic sur ce match');
+    }
+
     // Refuse toute combinaison logiquement impossible (contradictoire) ou corrélée au score exact.
     const legality = validateLegs(legs);
     if (!legality.ok) throw new Error(legality.reason);

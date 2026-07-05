@@ -57,6 +57,9 @@ export default function MatchDetail() {
   }, [match?._id, match?.status, match?.kickoff, id, syncDetails]);
 
   const canPredict = match?.status === 'scheduled' && match.kickoff > now;
+  // 1 seul pronostic par match : on grise l'entrée du prono si un pari NON-void existe déjà (miroir du
+  // garde serveur bets.place). `myBets === undefined` (chargement) ⇒ hasBet=false → pas de grisage prématuré.
+  const hasBet = !!myBets && myBets.some((b) => b.status !== 'void');
 
   // Onglets disponibles selon les données réellement présentes.
   const tabs = useMemo(() => {
@@ -157,21 +160,26 @@ export default function MatchDetail() {
               </View>
             </BrutalBox>
 
-            {/* Action prono */}
+            {/* Action prono — un seul pronostic par match (règle CGU) */}
             {canPredict ? (
               <View className="w-full gap-3">
                 <BrutalButton
-                  label={myBets && myBets.length > 0 ? 'Ajouter un prono' : 'Pronostiquer'}
+                  label={hasBet ? 'Pari déjà placé' : 'Pronostiquer'}
                   variant="primary"
-                  onPress={() => {
-                    resetDraft(); // nouveau pari : repart d'un brouillon vierge (jamais en mode édition)
-                    router.push(`/prono/${match._id}`);
-                  }}
+                  disabled={hasBet}
+                  onPress={
+                    hasBet
+                      ? undefined
+                      : () => {
+                          resetDraft(); // nouveau pari : repart d'un brouillon vierge (jamais en mode édition)
+                          router.push(`/prono/${match._id}`);
+                        }
+                  }
                 />
-                {myBets && myBets.length > 0 ? (
+                {hasBet ? (
                   <BrutalBox shadow={false} borderWidth={1} className="rounded-2xl bg-card px-4 py-3">
                     <Text className="font-ui-semibold text-xs text-green">
-                      {`${myBets.length} pari${myBets.length > 1 ? 's' : ''} déjà placé${myBets.length > 1 ? 's' : ''} sur ce match`}
+                      Tu as déjà pronostiqué ce match
                     </Text>
                   </BrutalBox>
                 ) : null}
